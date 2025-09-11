@@ -1,7 +1,82 @@
-import { useState } from "react";
+import React from "react";
+import { Routes, Route } from "react-router-dom";
 
-function App() {
-  return <></>;
-}
+// Your existing page components
+import LoginPage from "./features/auth/LoginPage";
+import Register from "./features/auth/Register";
+import HodDashboard from "./features/pages/dashboard/hod/HodDashboard";
+import StudentDashboard from "./features/pages/dashboard/student/StudentDashboard";
+import AdminDashboard from "./features/pages/dashboard/admin/AdminDashboard";
+import Instruction from "./features/pages/dashboard/Test/instruction";
+
+// --- NEW ---
+// Import the Test Engine component you just created
+import Engine from "./features/pages/dashboard/Test/Engine";
+
+// Import the "security guard" component
+import ProtectedRoute from "./components/ProtectedRoute";
+
+const App = () => {
+  return (
+    <Routes>
+      {/* --- Public Routes --- */}
+      <Route path="/" element={<LoginPage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<Register />} />
+
+      {/* --- Student Protected Routes --- */}
+      <Route
+        path="/student-dashboard"
+        element={
+          <ProtectedRoute role="Student">
+            <StudentDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/test/instruction"
+        element={
+          <ProtectedRoute role="Student">
+            <Instruction />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* --- NEW TEST ENGINE ROUTE --- */}
+      {/* This route is now active and protected. */}
+      <Route
+        path="/test/engine"
+        element={
+          <ProtectedRoute role="Student">
+            <Engine />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* --- HOD Protected Routes --- */}
+      <Route
+        path="/hod-dashboard"
+        element={
+          <ProtectedRoute role="HOD">
+            <HodDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* --- Admin Protected Routes --- */}
+      <Route
+        path="/admin-dashboard"
+        element={
+          <ProtectedRoute role="Admin">
+            <AdminDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* A catch-all route for any page that doesn't exist */}
+      <Route path="*" element={<h1>404: Page Not Found</h1>} />
+    </Routes>
+  );
+};
 
 export default App;
