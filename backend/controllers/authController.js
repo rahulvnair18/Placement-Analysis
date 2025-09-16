@@ -51,31 +51,61 @@ const loginUser = async (req, res) => {
   const { regId, password } = req.body;
 
   try {
+    // --- NEW ADMIN LOGIN LOGIC ---
+    // This block runs BEFORE we check the database.
+    // It checks if the login attempt matches the special admin credentials from the .env file.
+    if (
+      regId === process.env.ADMIN_ID &&
+      password === process.env.ADMIN_PASSWORD
+    ) {
+      // If it's the admin, we create a special JWT for them.
+      const payload = {
+        id: "admin_user", // A unique ID for the admin
+        role: "Admin", // The crucial role identifier
+      };
+
+      const token = jwt.sign(payload, process.env.JWT_SECRET, {
+        expiresIn: "1d",
+      });
+
+      console.log("Admin login successful.");
+      // Send back the token and admin user data, just like a regular user.
+      return res.status(200).json({
+        message: "Admin login successful",
+        token,
+        userId: "admin_user",
+        fullName: "Administrator",
+        role: "Admin",
+      });
+    }
+
+    // --- REGULAR STUDENT/HOD LOGIN LOGIC ---
+    // If the credentials were not for the admin, the code continues as normal.
     const user = await User.findOne({ regId });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Here, we use our new secure method to compare passwords
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    // If the password is correct, we generate the JWT "ID card"
-    const token = generateToken(user._id, user.role);
+    const payload = { id: user._id, role: user.role };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: "1d",
+    });
 
-    // We send the token back to the user's browser
     res.status(200).json({
       message: "Login successful",
-      role: user.role,
-      token: token, // The all-important token!
+      token,
       userId: user._id,
       fullName: user.fullName,
+      role: user.role,
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Server error during login" });
+    res.status(500).json({ message: "Server error" });
   }
 };
 

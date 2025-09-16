@@ -21,6 +21,8 @@ app.use("/api/auth", authRoutes);
 // --- THIS IS THE CORRECTED LINE ---
 // The base path for all question routes is now "/api/questions"
 app.use("/api/questions", questionRoutes);
-
+app.use("/api/tests", require("./routes/testRoutes"));
+app.use("/api/admin", require("./routes/adminRoutes"));
+app.use("/api/results", require("./routes/resultRoutes"));
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
