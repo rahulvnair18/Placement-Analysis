@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useContext } from "react";
+import { useNavigate } from "react-router-dom";
 import AuthContext from "../../../../context/AuthContext"; // Adjust path if needed
 
 const TestEngine = () => {
   // --- STATE AND CONSTANTS (Unchanged) ---
+  const navigate = useNavigate();
   const { token } = useContext(AuthContext);
+  const [testSessionId, setTestSessionId] = useState(null);
   const [allQuestions, setAllQuestions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -11,7 +14,7 @@ const TestEngine = () => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [timer, setTimer] = useState(15 * 60);
-
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const SECTIONS = [
     {
       name: "Aptitude",
@@ -30,12 +33,25 @@ const TestEngine = () => {
         return;
       }
       try {
-        const response = await fetch("http://localhost:5000/api/questions", {
-          headers: { Authorization: `Bearer ${token}` },
+        // --- UPDATED API CALL ---
+        // 1. The URL now points to your new multi-user test start endpoint.
+        // 2. The method is now 'POST' as required by the new route.
+        const response = await fetch("http://localhost:5000/api/tests/start", {
+          method: "POST", // <-- Changed from default GET to POST
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
         });
-        if (!response.ok) throw new Error("Failed to fetch questions.");
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Failed to start the test.");
+        }
+
         const data = await response.json();
-        setAllQuestions(data);
+        setAllQuestions(data.questions);
+        setTestSessionId(data.testSessionId);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -60,6 +76,34 @@ const TestEngine = () => {
     return () => clearInterval(interval);
   }, [isLoading, currentSectionIndex]);
 
+  const submitTest = async () => {
+    if (isSubmitting) return; // Prevent multiple clicks
+    setIsSubmitting(true);
+    try {
+      const response = await fetch("http://localhost:5000/api/results/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ answers, testSessionId }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to submit test.");
+      }
+
+      const resultData = await response.json();
+      console.log("Test submitted successfully:", resultData);
+
+      // On success, redirect to the "Test Completed" page with the new result ID
+      navigate(`/test/completed/${resultData.resultId}`);
+    } catch (error) {
+      setError(error.message);
+      setIsSubmitting(false); // Stop loading on error
+    }
+  };
   // --- HELPER FUNCTIONS (Unchanged) ---
   const handleNextSection = () => {
     if (currentSectionIndex < SECTIONS.length - 1) {
@@ -68,7 +112,8 @@ const TestEngine = () => {
       setCurrentQuestionIndex(0);
       setTimer(SECTIONS[nextSectionIndex].time);
     } else {
-      console.log("Submitting test...");
+      // This is the final section, so we trigger the submission process
+      submitTest();
     }
   };
 
@@ -104,6 +149,13 @@ const TestEngine = () => {
   const currentQuestion = currentSectionQuestions[currentQuestionIndex];
 
   // --- UI RENDER LOGIC (Unchanged) ---
+  if (isSubmitting) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex justify-center items-center text-white text-2xl p-10">
+        Submitting your test and calculating results...
+      </div>
+    );
+  }
   if (isLoading)
     return (
       <div className="min-h-screen bg-gray-900 flex justify-center items-center text-white text-2xl p-10">

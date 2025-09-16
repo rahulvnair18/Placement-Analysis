@@ -12,6 +12,7 @@ import Instruction from "./features/pages/dashboard/Test/instruction";
 // --- NEW ---
 // Import the Test Engine component you just created
 import Engine from "./features/pages/dashboard/Test/Engine";
+import TestCompleted from "./features/pages/dashboard/Test/TestCompleted";
 
 // Import the "security guard" component
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -69,6 +70,14 @@ const App = () => {
         element={
           <ProtectedRoute role="Admin">
             <AdminDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/test/completed/:resultId"
+        element={
+          <ProtectedRoute role="Student">
+            <TestCompleted />
           </ProtectedRoute>
         }
       />
