@@ -13,7 +13,9 @@ import Instruction from "./features/pages/dashboard/Test/instruction";
 // Import the Test Engine component you just created
 import Engine from "./features/pages/dashboard/Test/Engine";
 import TestCompleted from "./features/pages/dashboard/Test/TestCompleted";
-
+import ResultAnalysis from "./features/pages/dashboard/student/ResultAnalysis";
+import LatestAnalysisView from "./features/pages/dashboard/student/LatestAnalysisView";
+import AnalysisDashboard from "./features/pages/dashboard/student/AnalysisDashboard";
 // Import the "security guard" component
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -78,6 +80,30 @@ const App = () => {
         element={
           <ProtectedRoute role="Student">
             <TestCompleted />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/results/:resultId"
+        element={
+          <ProtectedRoute role="Student">
+            <ResultAnalysis />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/results/latest"
+        element={
+          <ProtectedRoute role="Student">
+            <LatestAnalysisView />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/results/latest"
+        element={
+          <ProtectedRoute role="Student">
+            <LatestAnalysisView />
           </ProtectedRoute>
         }
       />
