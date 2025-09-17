@@ -1,14 +1,21 @@
 const express = require("express");
 const router = express.Router();
-const { submitTest } = require("../controllers/resultController");
+const {
+  submitTest,
+  getResultDetails,
+  getMyResultsHistory, // <-- 1. Import the new function
+} = require("../controllers/resultController");
 const { protect } = require("../middleware/authMiddleware");
 
-// Define the "Submission Mailbox" endpoint.
-// When a POST request is made to '/api/results/submit', this route will be triggered.
-// 1. The 'protect' middleware runs first to verify the student's JWT.
-// 2. If the token is valid, the 'submitTest' controller function is executed.
+// Route for submitting a test (POST /api/results/submit)
 router.post("/submit", protect, submitTest);
 
-// We will add another route here later for fetching a specific result for the analysis page.
+// --- 2. ADD THE NEW ROUTE HERE ---
+// Route for fetching the logged-in student's test history (GET /api/results/my-history)
+// This MUST come BEFORE the '/:resultId' route to work correctly.
+router.get("/my-history", protect, getMyResultsHistory);
+
+// Route for fetching a single result by its ID (GET /api/results/some_id)
+router.get("/:resultId", protect, getResultDetails);
 
 module.exports = router;

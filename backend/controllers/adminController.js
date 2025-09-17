@@ -39,12 +39,10 @@ const getAllClassrooms = async (req, res) => {
 const addQuestionsToBank = async (req, res) => {
   const { category, count } = req.body;
   if (!category || !count || count <= 0) {
-    return res
-      .status(400)
-      .json({
-        message:
-          "Please provide a valid category and a positive number of questions.",
-      });
+    return res.status(400).json({
+      message:
+        "Please provide a valid category and a positive number of questions.",
+    });
   }
   try {
     const model = genAI.getGenerativeModel({
