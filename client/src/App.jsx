@@ -18,6 +18,7 @@ import LatestAnalysisView from "./features/pages/dashboard/student/LatestAnalysi
 import AnalysisDashboard from "./features/pages/dashboard/student/AnalysisDashboard";
 // Import the "security guard" component
 import ProtectedRoute from "./components/ProtectedRoute";
+import ClassroomDetails from "./features/pages/dashboard/hod/ClassroomDetails";
 
 const App = () => {
   return (
@@ -100,10 +101,10 @@ const App = () => {
         }
       />
       <Route
-        path="/results/latest"
+        path="/hod/classroom/:classroomId"
         element={
-          <ProtectedRoute role="Student">
-            <LatestAnalysisView />
+          <ProtectedRoute role="HOD">
+            <ClassroomDetails />
           </ProtectedRoute>
         }
       />

@@ -2,6 +2,7 @@ import React, { useState, useContext } from "react";
 import FullTestPractice from "./FullTestPractice";
 import ResultAnalysis from "./ResultAnalysis"; // We might need this directly later
 import LatestAnalysisView from "./LatestAnalysisView"; // <-- Import the new component
+import ClassroomView from "./ClassroomView";
 import AuthContext from "../../../../context/AuthContext";
 
 const StudentDashboard = () => {
@@ -11,16 +12,15 @@ const StudentDashboard = () => {
     switch (activeContent) {
       case "fullTest":
         return <FullTestPractice />;
+
+      // --- 2. THE CHANGE IS HERE ---
+      // When the 'classroom' tab is active, we now show the new component.
+      case "classroom":
+        return <ClassroomView />;
+
       case "analysis":
         return <LatestAnalysisView />;
 
-      case "classroom":
-        return <p className="text-gray-300">Classroom feature coming soon.</p>;
-
-      case "notification":
-        return (
-          <p className="text-gray-300">Notifications feature coming soon.</p>
-        );
       default:
         return <FullTestPractice />;
     }
@@ -51,16 +51,6 @@ const StudentDashboard = () => {
               }`}
             >
               Classroom
-            </button>
-            <button
-              onClick={() => setActiveContent("notification")}
-              className={`text-left px-4 py-2 rounded-lg transition ${
-                activeContent === "notification"
-                  ? "bg-blue-600"
-                  : "bg-gray-700 hover:bg-blue-600"
-              }`}
-            >
-              Notification
             </button>
 
             {/* --- UPDATED: "Analysis" button is now fully functional --- */}
