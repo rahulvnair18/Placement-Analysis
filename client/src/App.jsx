@@ -19,7 +19,7 @@ import AnalysisDashboard from "./features/pages/dashboard/student/AnalysisDashbo
 // Import the "security guard" component
 import ProtectedRoute from "./components/ProtectedRoute";
 import ClassroomDetails from "./features/pages/dashboard/hod/ClassroomDetails";
-
+import StudentClassroomDetails from "./features/pages/dashboard/student/StudentClassroomDetails";
 const App = () => {
   return (
     <Routes>
@@ -108,7 +108,14 @@ const App = () => {
           </ProtectedRoute>
         }
       />
-
+      <Route
+        path="/student/classroom/:classroomId"
+        element={
+          <ProtectedRoute role="Student">
+            <StudentClassroomDetails />
+          </ProtectedRoute>
+        }
+      />
       {/* A catch-all route for any page that doesn't exist */}
       <Route path="*" element={<h1>404: Page Not Found</h1>} />
     </Routes>

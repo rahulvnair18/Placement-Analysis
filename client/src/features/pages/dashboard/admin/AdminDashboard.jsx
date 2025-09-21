@@ -3,10 +3,11 @@ import AuthContext from "../../../../context/AuthContext"; // Adjust path if nee
 
 const AdminDashboard = () => {
   // --- STATE MANAGEMENT ---
-  const [activeView, setActiveView] = useState("students"); // 'students', 'hods', 'classrooms'
-  const [students, setStudents] = useState([]);
-  const [hods, setHods] = useState([]);
-  const [classrooms, setClassrooms] = useState([]);
+  const [activeView, setActiveView] = useState("students");
+  const [students, setStudents] = useState([]); // Use [] instead of leaving it empty
+  const [hods, setHods] = useState([]); // Use [] instead of leaving it empty
+  const [classrooms, setClassrooms] = useState([]); // Use [] instead of leaving it empty
+  const [questionStats, setQuestionStats] = useState([]); // Use [] instead of leaving it empty
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);

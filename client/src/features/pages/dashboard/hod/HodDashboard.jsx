@@ -45,6 +45,7 @@ const HodDashboard = () => {
       const response = await fetch(
         `http://localhost:5000/api/hod/classrooms/${classroomId}`,
         {
+          // --- THE FIX: We must specify the DELETE method ---
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -68,8 +69,8 @@ const HodDashboard = () => {
       return (
         <div className="text-center">
           <p className="text-gray-400">
-            You haven't created any classrooms yet. Click "+ Create
-            Classroom" to begin.
+            You haven't created any classrooms yet. Click "+ Create Classroom"
+            to begin.
           </p>
         </div>
       );
@@ -126,9 +127,7 @@ const HodDashboard = () => {
         <aside className="w-64 bg-gray-800 rounded-2xl p-6 shadow-xl flex flex-col gap-4">
           <h2 className="text-2xl font-bold text-white mb-4">HOD Panel</h2>
           <nav className="flex flex-col gap-4">
-            <button
-              className="text-left px-4 py-2 rounded-lg transition bg-blue-600"
-            >
+            <button className="text-left px-4 py-2 rounded-lg transition bg-blue-600">
               Classrooms
             </button>
             {/* --- THE FIX: The "Schedule Test" button has been removed --- */}
@@ -177,4 +176,3 @@ const HodDashboard = () => {
 };
 
 export default HodDashboard;
-

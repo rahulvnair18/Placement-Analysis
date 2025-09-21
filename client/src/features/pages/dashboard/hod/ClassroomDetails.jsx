@@ -1,31 +1,53 @@
 import React, { useState, useEffect, useContext } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
+
 import AuthContext from "../../../../context/AuthContext";
 
 const ClassroomDetails = () => {
   const { classroomId } = useParams();
   const { token } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   const [classroom, setClassroom] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState("students"); // 👈 tabs: students | settings
+  const [activeTab, setActiveTab] = useState("students");
   const [isRegenerating, setIsRegenerating] = useState(false);
 
-  // Fetch classroom details
-  const fetchClassroomDetails = async () => {
-    if (!token || !classroomId) return;
-    setIsLoading(true);
+  // --- NEW: State for the scheduling feature ---
+  const [scheduledTests, setScheduledTests] = useState([]);
+  const [showScheduleForm, setShowScheduleForm] = useState(false); // Controls form visibility
+  const [testTitle, setTestTitle] = useState("Placement Mock Test");
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
+  const [scheduleMessage, setScheduleMessage] = useState("");
+
+  // This one function now fetches BOTH classroom details and the list of scheduled tests
+  const fetchData = async () => {
+    // We don't set loading on every refresh, only the first time.
+    if (!isLoading) setIsLoading(true);
     try {
-      const response = await fetch(
-        `http://localhost:5000/api/hod/classrooms/${classroomId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      if (!response.ok) throw new Error("Failed to fetch classroom details.");
-      const data = await response.json();
-      setClassroom(data);
+      const headers = { Authorization: `Bearer ${token}` };
+      // Use Promise.all to fetch both pieces of data in parallel for speed
+      const [detailsRes, testsRes] = await Promise.all([
+        fetch(`http://localhost:5000/api/hod/classrooms/${classroomId}`, {
+          headers,
+        }),
+        fetch(
+          `http://localhost:5000/api/hod/classrooms/${classroomId}/scheduled-tests`,
+          { headers }
+        ),
+      ]);
+
+      if (!detailsRes.ok || !testsRes.ok) {
+        throw new Error("Failed to fetch all classroom data.");
+      }
+
+      const detailsData = await detailsRes.json();
+      const testsData = await testsRes.json();
+
+      setClassroom(detailsData);
+      setScheduledTests(testsData); // <-- Save the list of tests
     } catch (err) {
       setError(err.message);
     } finally {
@@ -34,10 +56,10 @@ const ClassroomDetails = () => {
   };
 
   useEffect(() => {
-    fetchClassroomDetails();
+    if (token) fetchData();
   }, [token, classroomId]);
 
-  // Handle regenerate code
+  // --- Regenerate Code ---
   const handleRegenerateCode = async () => {
     if (
       !window.confirm("Are you sure you want to regenerate the classroom code?")
@@ -55,7 +77,6 @@ const ClassroomDetails = () => {
       const data = await response.json();
       if (!response.ok)
         throw new Error(data.message || "Failed to regenerate code.");
-      // Update classroom state with new code
       setClassroom((prev) => ({ ...prev, joinCode: data.joinCode }));
       alert("Classroom code regenerated successfully!");
     } catch (err) {
@@ -64,6 +85,8 @@ const ClassroomDetails = () => {
       setIsRegenerating(false);
     }
   };
+
+  // --- Remove Student ---
   const handleRemoveStudent = async (studentId) => {
     if (!window.confirm("Are you sure you want to remove this student?"))
       return;
@@ -81,7 +104,6 @@ const ClassroomDetails = () => {
       if (!response.ok)
         throw new Error(data.message || "Failed to remove student.");
 
-      // ✅ Update state immediately without reloading full page
       setClassroom((prev) => ({
         ...prev,
         students: prev.students.filter((s) => s._id !== studentId),
@@ -92,58 +114,46 @@ const ClassroomDetails = () => {
       alert(err.message);
     }
   };
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-900 flex justify-center items-center text-white text-2xl p-10">
-        Loading Classroom Details...
-      </div>
-    );
-  }
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-900 flex justify-center items-center text-red-500 text-2xl p-10">
-        Error: {error}
-      </div>
-    );
-  }
+  // This function handles submitting the new test schedule
+  const handleScheduleTest = async (e) => {
+    e.preventDefault();
+    setScheduleMessage("Scheduling...");
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/hod/classrooms/${classroomId}/schedule-test`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ title: testTitle, startTime, endTime }),
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message);
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-white p-6 flex gap-6">
-      {/* --- Sidebar --- */}
-      <aside className="w-64 bg-gray-800 rounded-2xl p-6 shadow-xl flex flex-col gap-4">
-        <h2 className="text-2xl font-bold mb-4">{classroom?.name}</h2>
-        <p className="text-gray-400 text-sm mb-6">Batch: {classroom?.batch}</p>
+      // On success, show message, hide form, and refresh the test list
+      setScheduleMessage(data.message);
+      setShowScheduleForm(false);
+      fetchData(); // Re-fetch all data to show the new test in the list
+      setTimeout(() => setScheduleMessage(""), 5000); // Clear message after 5 seconds
+    } catch (err) {
+      setScheduleMessage(`Error: ${err.message}`);
+    }
+  };
 
-        <button
-          onClick={() => setActiveTab("students")}
-          className={`text-left px-4 py-2 rounded-lg transition ${
-            activeTab === "students" ? "bg-blue-600" : "bg-gray-700"
-          }`}
-        >
-          Students
-        </button>
+  // --- Tab Content ---
+  const renderContent = () => {
+    if (isLoading)
+      return <p className="text-gray-400">Loading classroom details...</p>;
+    if (error) return <p className="text-red-500">Error: {error}</p>;
+    if (!classroom) return <p>No classroom data found.</p>;
 
-        <button
-          onClick={() => setActiveTab("settings")}
-          className={`text-left px-4 py-2 rounded-lg transition ${
-            activeTab === "settings" ? "bg-blue-600" : "bg-gray-700"
-          }`}
-        >
-          Settings
-        </button>
-
-        <Link
-          to="/hod-dashboard"
-          className="mt-auto text-center bg-red-600 px-4 py-2 rounded-lg hover:bg-red-700 transition"
-        >
-          Back to Dashboard
-        </Link>
-      </aside>
-
-      {/* --- Main Content --- */}
-      <main className="flex-1 bg-gray-800 p-6 rounded-2xl shadow-lg overflow-y-auto">
-        {activeTab === "students" && (
+    switch (activeTab) {
+      case "students":
+        return (
           <>
             <h2 className="text-2xl font-bold mb-4">
               Student Roster ({classroom?.students?.length || 0})
@@ -158,6 +168,7 @@ const ClassroomDetails = () => {
                     <th className="text-left py-3 px-4 font-semibold">
                       Roll No
                     </th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-700">
@@ -183,9 +194,102 @@ const ClassroomDetails = () => {
               </p>
             )}
           </>
-        )}
+        );
 
-        {activeTab === "settings" && (
+      case "scheduleTest":
+        return (
+          <div>
+            <h3 className="text-xl font-bold mb-4">Scheduled Tests</h3>
+            {/* --- List of Scheduled Tests --- */}
+            <div className="space-y-3 mb-6">
+              {scheduledTests.length > 0
+                ? scheduledTests.map((test) => (
+                    <div key={test._id} className="bg-gray-700 p-4 rounded-lg">
+                      <p className="font-semibold">{test.title}</p>
+                      <p className="text-sm text-gray-400">
+                        Starts: {new Date(test.startTime).toLocaleString()} |
+                        Ends: {new Date(test.endTime).toLocaleString()}
+                      </p>
+                    </div>
+                  ))
+                : !showScheduleForm && (
+                    <p className="text-gray-400">
+                      No tests have been scheduled for this classroom yet.
+                    </p>
+                  )}
+            </div>
+
+            {/* --- Schedule Test Button / Form --- */}
+            {!showScheduleForm ? (
+              <button
+                onClick={() => setShowScheduleForm(true)}
+                className="bg-blue-600 font-semibold py-2 px-6 rounded-lg hover:bg-blue-700"
+              >
+                + Schedule a New Test
+              </button>
+            ) : (
+              <form
+                onSubmit={handleScheduleTest}
+                className="bg-gray-700 p-6 rounded-lg mt-4 max-w-lg"
+              >
+                <h4 className="font-bold mb-4">New Test Details</h4>
+                <div className="mb-4">
+                  <label className="block text-gray-400 mb-2">Test Title</label>
+                  <input
+                    type="text"
+                    value={testTitle}
+                    onChange={(e) => setTestTitle(e.target.value)}
+                    className="w-full bg-gray-800 p-2 rounded"
+                    required
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block text-gray-400 mb-2">Start Time</label>
+                  <input
+                    type="datetime-local"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    className="w-full bg-gray-800 p-2 rounded"
+                    required
+                  />
+                </div>
+                <div className="mb-6">
+                  <label className="block text-gray-400 mb-2">End Time</label>
+                  <input
+                    type="datetime-local"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    className="w-full bg-gray-800 p-2 rounded"
+                    required
+                  />
+                </div>
+                <div className="flex items-center gap-4">
+                  <button
+                    type="submit"
+                    className="bg-green-600 py-2 px-6 rounded-lg hover:bg-green-700"
+                  >
+                    Schedule
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowScheduleForm(false)}
+                    className="text-gray-400 hover:text-white"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                {scheduleMessage && (
+                  <p className="mt-4 text-sm text-green-400">
+                    {scheduleMessage}
+                  </p>
+                )}
+              </form>
+            )}
+          </div>
+        );
+
+      case "settings":
+        return (
           <>
             <h2 className="text-2xl font-bold mb-4">Classroom Settings</h2>
             <div className="bg-gray-700 p-4 rounded-lg">
@@ -202,7 +306,70 @@ const ClassroomDetails = () => {
               </button>
             </div>
           </>
-        )}
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-6 flex gap-6">
+      {/* --- Sidebar --- */}
+      <aside className="w-64 bg-gray-800 rounded-2xl p-6 shadow-xl flex flex-col">
+        <div>
+          <h2 className="text-2xl font-bold mb-2">
+            {classroom?.name || "Loading..."}
+          </h2>
+          <p className="text-gray-400 text-sm mb-8">
+            Batch: {classroom?.batch}
+          </p>
+          <nav className="flex flex-col gap-2">
+            <button
+              onClick={() => setActiveTab("students")}
+              className={`text-left w-full px-4 py-3 rounded-lg font-semibold ${
+                activeTab === "students"
+                  ? "bg-blue-600"
+                  : "bg-gray-800 hover:bg-gray-700"
+              }`}
+            >
+              Students
+            </button>
+            {/* --- THE FIX: The "Schedule Test" button is now restored --- */}
+            <button
+              onClick={() => setActiveTab("scheduleTest")}
+              className={`text-left w-full px-4 py-3 rounded-lg font-semibold ${
+                activeTab === "scheduleTest"
+                  ? "bg-blue-600"
+                  : "bg-gray-800 hover:bg-gray-700"
+              }`}
+            >
+              Schedule Test
+            </button>
+            <button
+              onClick={() => setActiveTab("settings")}
+              className={`text-left w-full px-4 py-3 rounded-lg font-semibold ${
+                activeTab === "settings"
+                  ? "bg-blue-600"
+                  : "bg-gray-800 hover:bg-gray-700"
+              }`}
+            >
+              Settings
+            </button>
+          </nav>
+        </div>
+
+        <button
+          onClick={() => navigate("/hod-dashboard")}
+          className="w-full mt-auto px-4 py-3 rounded-lg font-semibold bg-red-600 hover:bg-red-700 transition"
+        >
+          Back to Dashboard
+        </button>
+      </aside>
+
+      {/* --- Main Content --- */}
+      <main className="flex-1 bg-gray-800 p-8 rounded-2xl shadow-lg overflow-y-auto">
+        {renderContent()}
       </main>
     </div>
   );

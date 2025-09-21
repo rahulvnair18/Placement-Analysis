@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
+import { useParams, Link } from "react-router-dom";
 import AuthContext from "../../../../context/AuthContext";
 
 const ClassroomView = () => {
@@ -119,9 +120,13 @@ const ClassroomView = () => {
                   HOD: {classroom.hodId?.fullName || "N/A"}
                 </p>
               </div>
-              <p className="text-sm font-semibold bg-gray-600 px-3 py-1 rounded-full">
-                Batch: {classroom.batch}
-              </p>
+              {/* --- THE CHANGE: Add a "View" button --- */}
+              <Link
+                to={`/student/classroom/${classroom._id}`}
+                className="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition text-sm"
+              >
+                View
+              </Link>
             </div>
           ))}
         </div>

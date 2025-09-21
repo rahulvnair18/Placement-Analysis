@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useContext } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import AuthContext from "../../../../context/AuthContext"; // Adjust path if needed
 
 const TestEngine = () => {
   // --- STATE AND CONSTANTS (Unchanged) ---
   const navigate = useNavigate();
+  const location = useLocation();
   const { token } = useContext(AuthContext);
   const [testSessionId, setTestSessionId] = useState(null);
   const [allQuestions, setAllQuestions] = useState([]);
@@ -26,43 +27,59 @@ const TestEngine = () => {
 
   // --- DATA FETCHING & TIMER (Unchanged) ---
   useEffect(() => {
-    const fetchQuestions = async () => {
-      if (!token) {
-        setError("Authentication error.");
+    // This function decides whether to fetch questions or use the ones passed to it.
+    const initializeTest = async () => {
+      // Check if data was passed from the previous page (the scheduled test page)
+      if (location.state?.testType === "scheduled") {
+        console.log("Starting a scheduled test...");
+        setAllQuestions(location.state.questions);
+        setTestSessionId(location.state.testSessionId);
         setIsLoading(false);
-        return;
-      }
-      try {
-        // --- UPDATED API CALL ---
-        // 1. The URL now points to your new multi-user test start endpoint.
-        // 2. The method is now 'POST' as required by the new route.
-        const response = await fetch("http://localhost:5000/api/tests/start", {
-          method: "POST", // <-- Changed from default GET to POST
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Failed to start the test.");
+      } else {
+        // This is a regular mock test, so we fetch questions as normal.
+        console.log("Starting a mock test...");
+        try {
+          const response = await fetch(
+            "http://localhost:5000/api/tests/start-mock",
+            {
+              method: "POST",
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
+          if (!response.ok) throw new Error("Failed to start mock test.");
+          const data = await response.json();
+          setAllQuestions(data.questions);
+          setTestSessionId(data.testSessionId);
+        } catch (err) {
+          setError(err.message);
+        } finally {
+          setIsLoading(false);
         }
-
-        const data = await response.json();
-        setAllQuestions(data.questions);
-        setTestSessionId(data.testSessionId);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setIsLoading(false);
       }
     };
-    fetchQuestions();
-  }, [token]);
+
+    if (token) {
+      initializeTest();
+    }
+  }, [token, location.state]);
 
   useEffect(() => {
     if (isLoading || allQuestions.length === 0) return;
+
+    let initialTime;
+    // Check if this is a scheduled test with a fixed end time
+    if (location.state?.endTime) {
+      const endTime = new Date(location.state.endTime);
+      const now = new Date();
+      // Calculate the remaining seconds
+      initialTime = Math.max(0, Math.floor((endTime - now) / 1000));
+    } else {
+      // It's a regular mock test, so use the standard section time
+      initialTime = SECTIONS[currentSectionIndex].time;
+    }
+
+    setTimer(initialTime);
+
     const interval = setInterval(() => {
       setTimer((prevTimer) => {
         if (prevTimer <= 1) {
@@ -73,8 +90,9 @@ const TestEngine = () => {
         return prevTimer - 1;
       });
     }, 1000);
+
     return () => clearInterval(interval);
-  }, [isLoading, currentSectionIndex]);
+  }, [isLoading, currentSectionIndex, location.state]);
 
   const submitTest = async () => {
     if (isSubmitting) return; // Prevent multiple clicks
