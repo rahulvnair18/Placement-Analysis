@@ -1,6 +1,6 @@
 const Classroom = require("../models/classroom");
 const User = require("../models/user");
-
+const ScheduledTest = require("../models/scheduledTest");
 // --- Function for a student to join a classroom ---
 const joinClassroom = async (req, res) => {
   try {
@@ -28,11 +28,9 @@ const joinClassroom = async (req, res) => {
     // 3. --- The Critical Security Check ---
     // Compare the batch assigned to the classroom with the student's own batch.
     if (classroom.batch !== student.batch) {
-      return res
-        .status(403)
-        .json({
-          message: `This join code is not valid for your batch (${student.batch}).`,
-        });
+      return res.status(403).json({
+        message: `This join code is not valid for your batch (${student.batch}).`,
+      });
     }
 
     // 4. Check if the student is already a member of the classroom.
@@ -77,8 +75,37 @@ const getMyClassrooms = async (req, res) => {
     res.status(500).json({ message: "Server error fetching your classrooms." });
   }
 };
+// This function now has the 'ScheduledTest' ingredient it needs.
+const getScheduledTestsForClassroom = async (req, res) => {
+  try {
+    const { classroomId } = req.params;
+    const studentId = req.user._id;
+
+    // Security Check
+    const classroom = await Classroom.findOne({
+      _id: classroomId,
+      students: studentId,
+    });
+    if (!classroom) {
+      return res
+        .status(403)
+        .json({ message: "You are not a member of this classroom." });
+    }
+
+    // Now this line will work because ScheduledTest is defined.
+    const scheduledTests = await ScheduledTest.find({ classroomId }).sort({
+      startTime: 1,
+    });
+
+    res.status(200).json(scheduledTests);
+  } catch (error) {
+    console.error("Error fetching scheduled tests for student:", error);
+    res.status(500).json({ message: "Server error fetching scheduled tests." });
+  }
+};
 
 module.exports = {
   joinClassroom,
   getMyClassrooms,
+  getScheduledTestsForClassroom,
 };

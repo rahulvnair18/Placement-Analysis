@@ -1,5 +1,6 @@
 const Classroom = require("../models/classroom");
 const User = require("../models/user");
+const ScheduledTest = require("../models/scheduledTest");
 const crypto = require("crypto");
 
 // Create classroom (already good)
@@ -25,7 +26,26 @@ const createClassroom = async (req, res) => {
     res.status(500).json({ message: "Server error creating classroom." });
   }
 };
+// Delete classroom
+const deleteClassroom = async (req, res) => {
+  try {
+    const { classroomId } = req.params;
+    const hodId = req.user._id;
 
+    const classroom = await Classroom.findOne({ _id: classroomId, hodId });
+    if (!classroom) {
+      return res
+        .status(404)
+        .json({ message: "Classroom not found or you are not authorized." });
+    }
+
+    await Classroom.deleteOne({ _id: classroomId });
+    res.status(200).json({ message: "Classroom deleted successfully." });
+  } catch (error) {
+    console.error("Error deleting classroom:", error);
+    res.status(500).json({ message: "Server error deleting classroom." });
+  }
+};
 // Get all classrooms for HOD
 const getMyClassrooms = async (req, res) => {
   try {
@@ -122,10 +142,85 @@ const removeStudentFromClassroom = async (req, res) => {
     res.status(500).json({ message: "Server error removing student." });
   }
 };
+// --- NEW: Function to schedule a test for a classroom ---
+const scheduleTest = async (req, res) => {
+  try {
+    const { classroomId } = req.params;
+    const { title, startTime, endTime } = req.body;
+    const hodId = req.user._id;
+
+    // 1. Validate the input from the HOD's form.
+    if (!title || !startTime || !endTime) {
+      return res.status(400).json({
+        message: "Test title, start time, and end time are required.",
+      });
+    }
+
+    if (new Date(startTime) >= new Date(endTime)) {
+      return res
+        .status(400)
+        .json({ message: "End time must be after the start time." });
+    }
+
+    // 2. Security Check: Ensure the HOD owns this classroom before scheduling a test for it.
+    const classroom = await Classroom.findOne({ _id: classroomId, hodId });
+    if (!classroom) {
+      return res
+        .status(404)
+        .json({ message: "Classroom not found or you are not authorized." });
+    }
+
+    // 3. Create the new "event ticket" document.
+    const newScheduledTest = new ScheduledTest({
+      title,
+      startTime,
+      endTime,
+      classroomId,
+      hodId,
+    });
+
+    await newScheduledTest.save();
+
+    // 4. Send a success confirmation back.
+    res
+      .status(201)
+      .json({ message: `Test "${title}" scheduled successfully.` });
+  } catch (error) {
+    console.error("Error scheduling test:", error);
+    res.status(500).json({ message: "Server error scheduling test." });
+  }
+};
+const getScheduledTestsForClassroom = async (req, res) => {
+  try {
+    const { classroomId } = req.params;
+    const hodId = req.user._id;
+
+    // Security Check: First, ensure the HOD owns the classroom they're asking about.
+    const classroom = await Classroom.findOne({ _id: classroomId, hodId });
+    if (!classroom) {
+      return res
+        .status(404)
+        .json({ message: "Classroom not found or you are not authorized." });
+    }
+
+    // Find all tests in the 'scheduledtests' collection that match this classroomId
+    const scheduledTests = await ScheduledTest.find({ classroomId }).sort({
+      startTime: 1,
+    }); // Sort by start time, showing upcoming tests first
+
+    res.status(200).json(scheduledTests);
+  } catch (error) {
+    console.error("Error fetching scheduled tests:", error);
+    res.status(500).json({ message: "Server error fetching scheduled tests." });
+  }
+};
 module.exports = {
   createClassroom,
   getMyClassrooms,
   getClassroomDetails,
-  regenerateClassroomCode, // 👈 export new function
+  regenerateClassroomCode,
+  getScheduledTestsForClassroom,
   removeStudentFromClassroom,
+  scheduleTest,
+  deleteClassroom, // ✅ add this
 };

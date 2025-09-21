@@ -8,6 +8,9 @@ const {
   getClassroomDetails,
   regenerateClassroomCode, // 👈 new function
   removeStudentFromClassroom,
+  scheduleTest,
+  getScheduledTestsForClassroom,
+  deleteClassroom, // ✅ new function
 } = require("../controllers/hodController");
 const { hodProtect } = require("../middleware/hodMiddleware");
 
@@ -42,5 +45,14 @@ router.patch(
   hodProtect,
   removeStudentFromClassroom
 );
+router.post("/classrooms/:classroomId/schedule-test", hodProtect, scheduleTest);
+// --- NEW: Route to get the list of scheduled tests for a classroom ---
+// Full Path: GET /api/hod/classrooms/some_classroom_id/scheduled-tests
+router.get(
+  "/classrooms/:classroomId/scheduled-tests",
+  hodProtect,
+  getScheduledTestsForClassroom
+);
+router.delete("/classrooms/:classroomId", hodProtect, deleteClassroom);
 
 module.exports = router;

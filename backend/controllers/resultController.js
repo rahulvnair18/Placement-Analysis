@@ -88,6 +88,18 @@ const getResultDetails = async (req, res) => {
         .json({ message: "Result not found or you are not authorized." });
     }
 
+    // --- THE FIX: Add a defensive check here ---
+    if (!result.answers || Object.keys(result.answers).length === 0) {
+      return res.status(200).json({
+        score: result.score,
+        totalMarks: result.totalMarks,
+        createdAt: result.createdAt,
+        analysis: [],
+        sectionScores: {},
+        sectionTotals: {},
+      });
+    }
+
     const questionIds = Object.keys(result.answers);
     const questions = await Question.find({ _id: { $in: questionIds } }).lean();
 
@@ -111,7 +123,6 @@ const getResultDetails = async (req, res) => {
       }
     });
 
-    // The analysisData mapping is unchanged
     const analysisData = questions.map((question) => ({
       _id: question._id,
       questionText: question.questionText,
@@ -137,6 +148,7 @@ const getResultDetails = async (req, res) => {
     res.status(500).json({ message: "Server error fetching result details." });
   }
 };
+
 const getMyResultsHistory = async (req, res) => {
   try {
     const studentId = req.user._id;

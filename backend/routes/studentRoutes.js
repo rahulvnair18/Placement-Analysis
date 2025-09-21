@@ -5,6 +5,7 @@ const router = express.Router();
 const {
   joinClassroom,
   getMyClassrooms,
+  getScheduledTestsForClassroom,
 } = require("../controllers/studentController");
 const { protect } = require("../middleware/authMiddleware"); // Using the general 'protect' guard
 
@@ -18,5 +19,9 @@ router.post("/classrooms/join", protect, joinClassroom);
 // Route for a student to get a list of all classrooms they are a member of
 // Full Path: GET /api/student/classrooms/my-classrooms
 router.get("/classrooms/my-classrooms", protect, getMyClassrooms);
-
+router.get(
+  "/classrooms/:classroomId/scheduled-tests",
+  protect,
+  getScheduledTestsForClassroom
+);
 module.exports = router;
