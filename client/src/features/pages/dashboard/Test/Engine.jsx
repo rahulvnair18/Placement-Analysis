@@ -16,6 +16,7 @@ const TestEngine = () => {
   const [answers, setAnswers] = useState({});
   const [timer, setTimer] = useState(15 * 60);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [scheduledTestId, setScheduledTestId] = useState(null);
   const SECTIONS = [
     {
       name: "Aptitude",
@@ -34,6 +35,7 @@ const TestEngine = () => {
         console.log("Starting a scheduled test...");
         setAllQuestions(location.state.questions);
         setTestSessionId(location.state.testSessionId);
+        setScheduledTestId(location.state.scheduledTestId);
         setIsLoading(false);
       } else {
         // This is a regular mock test, so we fetch questions as normal.
@@ -95,16 +97,28 @@ const TestEngine = () => {
   }, [isLoading, currentSectionIndex, location.state]);
 
   const submitTest = async () => {
-    if (isSubmitting) return; // Prevent multiple clicks
+    if (isSubmitting) return;
     setIsSubmitting(true);
     try {
+      // --- 3. CREATE A DYNAMIC SUBMISSION BODY ---
+      const submissionBody = {
+        answers,
+        testSessionId,
+      };
+
+      // If it's a scheduled test, add the special ID
+      if (scheduledTestId) {
+        submissionBody.scheduledTestId = scheduledTestId;
+      }
+
       const response = await fetch("http://localhost:5000/api/results/submit", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ answers, testSessionId }),
+        // Send the dynamic body
+        body: JSON.stringify(submissionBody),
       });
 
       if (!response.ok) {
@@ -114,12 +128,12 @@ const TestEngine = () => {
 
       const resultData = await response.json();
       console.log("Test submitted successfully:", resultData);
-
-      // On success, redirect to the "Test Completed" page with the new result ID
-      navigate(`/test/completed/${resultData.resultId}`);
+      navigate(`/test/completed/${resultData.resultId}`, {
+        state: { isScheduled: !!scheduledTestId }, // Pass whether it was a scheduled test
+      });
     } catch (error) {
       setError(error.message);
-      setIsSubmitting(false); // Stop loading on error
+      setIsSubmitting(false);
     }
   };
   // --- HELPER FUNCTIONS (Unchanged) ---

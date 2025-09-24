@@ -20,6 +20,8 @@ import AnalysisDashboard from "./features/pages/dashboard/student/AnalysisDashbo
 import ProtectedRoute from "./components/ProtectedRoute";
 import ClassroomDetails from "./features/pages/dashboard/hod/ClassroomDetails";
 import StudentClassroomDetails from "./features/pages/dashboard/student/StudentClassroomDetails";
+import ScheduledResultAnalysis from "./features/pages/dashboard/student/ScheduledResultAnalysis";
+import HODTestAnalysis from "./features/pages/dashboard/hod/HODTestAnalysis";
 const App = () => {
   return (
     <Routes>
@@ -93,6 +95,14 @@ const App = () => {
         }
       />
       <Route
+        path="/scheduled-results/:resultId"
+        element={
+          <ProtectedRoute role="Student">
+            <ScheduledResultAnalysis />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/results/latest"
         element={
           <ProtectedRoute role="Student">
@@ -113,6 +123,14 @@ const App = () => {
         element={
           <ProtectedRoute role="Student">
             <StudentClassroomDetails />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/hod/test-analysis/:scheduledTestId"
+        element={
+          <ProtectedRoute role="HOD">
+            <HODTestAnalysis />
           </ProtectedRoute>
         }
       />

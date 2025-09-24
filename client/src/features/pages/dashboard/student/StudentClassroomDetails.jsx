@@ -40,9 +40,8 @@ const StudentClassroomDetails = () => {
 
   // --- NEW: Function to handle starting a scheduled test ---
   const handleStartScheduledTest = async (scheduledTestId) => {
-    setStartTestError(""); // Clear previous errors
+    setStartTestError("");
     try {
-      // 1. Call the new, specific backend endpoint for scheduled tests
       const response = await fetch(
         `http://localhost:5000/api/tests/start-scheduled/${scheduledTestId}`,
         {
@@ -56,21 +55,21 @@ const StudentClassroomDetails = () => {
         throw new Error(data.message || "Could not start the test.");
       }
 
-      // 2. On success, navigate to the test engine.
-      // CRITICAL: Pass the questions, session ID, and fixed end time via navigation state.
+      // --- THE FIX IS HERE ---
+      // We now pass the scheduledTestId to the Test Engine.
       navigate("/test/engine", {
         state: {
           questions: data.questions,
           testSessionId: data.testSessionId,
           endTime: data.endTime,
-          testType: "scheduled", // A flag to tell the engine this is a special test
+          testType: "scheduled",
+          scheduledTestId: scheduledTestId, // <-- ADD THIS LINE
         },
       });
     } catch (err) {
       setStartTestError(err.message);
     }
   };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-white p-6">
       <div className="max-w-4xl mx-auto">

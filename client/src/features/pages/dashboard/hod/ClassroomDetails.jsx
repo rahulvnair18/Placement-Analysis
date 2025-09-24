@@ -204,13 +204,25 @@ const ClassroomDetails = () => {
             <div className="space-y-3 mb-6">
               {scheduledTests.length > 0
                 ? scheduledTests.map((test) => (
-                    <div key={test._id} className="bg-gray-700 p-4 rounded-lg">
-                      <p className="font-semibold">{test.title}</p>
-                      <p className="text-sm text-gray-400">
-                        Starts: {new Date(test.startTime).toLocaleString()} |
-                        Ends: {new Date(test.endTime).toLocaleString()}
-                      </p>
-                    </div>
+                    <Link
+                      key={test._id}
+                      to={`/hod/test-analysis/${test._id}`} // 2. It points to our new analysis URL
+                      className="block bg-gray-700 p-4 rounded-lg hover:bg-blue-900/50 transition"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="font-semibold">{test.title}</p>
+                          <p className="text-sm text-gray-400">
+                            Starts: {new Date(test.startTime).toLocaleString()}{" "}
+                            | Ends: {new Date(test.endTime).toLocaleString()}
+                          </p>
+                        </div>
+                        {/* 3. A clear "View Results" label */}
+                        <div className="text-blue-400 font-semibold">
+                          View Results &rarr;
+                        </div>
+                      </div>
+                    </Link>
                   ))
                 : !showScheduleForm && (
                     <p className="text-gray-400">

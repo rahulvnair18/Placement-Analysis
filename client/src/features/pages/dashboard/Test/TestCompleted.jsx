@@ -1,11 +1,16 @@
 import React from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom"; // 1. Import useLocation
 
 const TestCompleted = () => {
-  // The useParams hook allows us to get the dynamic part of the URL.
-  // In our route, we will define it as '/test/completed/:resultId',
-  // so this hook will give us access to the 'resultId'.
   const { resultId } = useParams();
+  const location = useLocation(); // 2. Get the location object
+
+  // 3. Check the state passed from the previous page to see what kind of test it was.
+  // We default to the mock test URL if the state is not available for any reason.
+  const isScheduled = location.state?.isScheduled || false;
+  const resultUrl = isScheduled
+    ? `/scheduled-results/${resultId}` // URL for scheduled results
+    : `/results/${resultId}`; // URL for mock results
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-white flex flex-col items-center justify-center p-6 text-center">
@@ -32,9 +37,9 @@ const TestCompleted = () => {
           detailed analysis of your performance.
         </p>
 
-        {/* This Link component creates a button that navigates the user to their unique results page. */}
+        {/* 4. Use the dynamic URL we created */}
         <Link
-          to={`/results/${resultId}`}
+          to={resultUrl}
           className="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg text-lg hover:bg-blue-700 transition-transform transform hover:scale-105"
         >
           View My Results & Analysis
