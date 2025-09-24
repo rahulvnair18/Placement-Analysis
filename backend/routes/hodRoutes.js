@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const {
+  getStudentResultForHOD,
   getTestAnalysisForHOD,
   getHodQuestionStats,
   addQuestionsToHodBank,
@@ -45,6 +46,11 @@ router.get(
   "/test-analysis/:scheduledTestId",
   hodProtect,
   getTestAnalysisForHOD
+);
+router.get(
+  "/student-result/:scheduledTestId/:studentId",
+  hodProtect,
+  getStudentResultForHOD
 );
 
 // --- THIS ROUTE WAS REMOVED BECAUSE IT DOES NOT BELONG HERE ---

@@ -3,6 +3,7 @@ const router = express.Router();
 
 // Import the controller functions and the security guard
 const {
+  getTestsWithStatus,
   joinClassroom,
   getMyClassrooms,
   getScheduledTestsForClassroom,
@@ -24,4 +25,5 @@ router.get(
   protect,
   getScheduledTestsForClassroom
 );
+router.get("/classroom-tests/:classroomId", protect, getTestsWithStatus);
 module.exports = router;

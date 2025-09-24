@@ -1,6 +1,7 @@
 const Classroom = require("../models/classroom");
 const User = require("../models/user");
 const ScheduledTest = require("../models/scheduledTest");
+const ScheduledTestResult = require("../models/ScheduledTestResult");
 // --- Function for a student to join a classroom ---
 const joinClassroom = async (req, res) => {
   try {
@@ -103,8 +104,69 @@ const getScheduledTestsForClassroom = async (req, res) => {
     res.status(500).json({ message: "Server error fetching scheduled tests." });
   }
 };
+const getTestsWithStatus = async (req, res) => {
+  try {
+    const { classroomId } = req.params;
+    const studentId = req.user._id;
+
+    // Security check
+    const classroom = await Classroom.findOne({
+      _id: classroomId,
+      students: studentId,
+    });
+    if (!classroom) {
+      return res
+        .status(403)
+        .json({ message: "You are not a member of this classroom." });
+    }
+
+    // 2. Get the list of scheduled tests for the classroom
+    const scheduledTests = await ScheduledTest.find({ classroomId }).lean();
+
+    // 3. Get all of the student's results for THIS SET of tests
+    const testIds = scheduledTests.map((t) => t._id);
+    const results = await ScheduledTestResult.find({
+      studentId: studentId,
+      scheduledTestId: { $in: testIds },
+    });
+
+    const resultMap = new Map();
+    results.forEach((r) =>
+      resultMap.set(r.scheduledTestId.toString(), r._id.toString())
+    );
+
+    const testsWithStatus = scheduledTests.map((test) => {
+      const now = new Date();
+      const startTime = new Date(test.startTime);
+      const endTime = new Date(test.endTime);
+      let status = "upcoming";
+      let resultId = null; // Default resultId is null
+
+      if (resultMap.has(test._id.toString())) {
+        status = "attempted";
+        resultId = resultMap.get(test._id.toString()); // <-- Add the resultId
+      } else if (now >= startTime && now <= endTime) {
+        status = "live";
+      } else if (now > endTime) {
+        status = "ended";
+      }
+
+      return {
+        ...test,
+        status: status,
+        resultId: resultId, // <-- Include the resultId in the response
+      };
+    });
+
+    res.status(200).json(testsWithStatus);
+  } catch (error) {
+    console.error("Error fetching tests with status:", error);
+    res.status(500).json({ message: "Server error." });
+  }
+};
 
 module.exports = {
+  getTestsWithStatus,
   joinClassroom,
   getMyClassrooms,
   getScheduledTestsForClassroom,

@@ -318,6 +318,7 @@ const getTestAnalysisForHOD = async (req, res) => {
 
     const attemptedStudents = submittedResults
       .map((result) => ({
+        studentId: result.studentId._id, // <-- ADD THIS LINE
         name: result.studentId.fullName,
         score: result.score,
         totalMarks: result.totalMarks,
@@ -342,7 +343,78 @@ const getTestAnalysisForHOD = async (req, res) => {
     res.status(500).json({ message: "Server error fetching test analysis." });
   }
 };
+// Add this entire new function to hodController.js
+
+const getStudentResultForHOD = async (req, res) => {
+  try {
+    const { scheduledTestId, studentId } = req.params;
+    const hodId = req.user._id;
+
+    // 1. Security Check: Verify the HOD owns the test.
+    const scheduledTest = await ScheduledTest.findById(scheduledTestId);
+    if (!scheduledTest || scheduledTest.hodId.toString() !== hodId.toString()) {
+      return res
+        .status(404)
+        .json({ message: "Test not found or you are not authorized." });
+    }
+
+    // 2. Find the specific student's result for that specific test.
+    const result = await ScheduledTestResult.findOne({
+      scheduledTestId,
+      studentId,
+    }).lean();
+    if (!result) {
+      return res
+        .status(404)
+        .json({ message: "No result found for this student on this test." });
+    }
+
+    // 3. Get the questions from the HOD's private bank to perform the analysis.
+    const questionIds = Object.keys(result.answers);
+    const questions = await HodQuestion.find({
+      _id: { $in: questionIds },
+    }).lean();
+
+    // 4. Perform the analysis (same logic as the student's view).
+    const sectionScores = {};
+    const sectionTotals = {};
+    questions.forEach((question) => {
+      const section = question.section;
+      if (!sectionScores[section]) sectionScores[section] = 0;
+      if (!sectionTotals[section]) sectionTotals[section] = 0;
+      sectionTotals[section]++;
+      if (result.answers[question._id.toString()] === question.correctAnswer) {
+        sectionScores[section]++;
+      }
+    });
+
+    const analysisData = questions.map((question) => ({
+      _id: question._id,
+      questionText: question.questionText,
+      options: question.options,
+      correctAnswer: question.correctAnswer,
+      explanation: question.explanation,
+      studentAnswer: result.answers[question._id.toString()] || "Not Attempted",
+      isCorrect:
+        result.answers[question._id.toString()] === question.correctAnswer,
+    }));
+
+    // 5. Send the complete data package back.
+    res.status(200).json({
+      score: result.score,
+      totalMarks: result.totalMarks,
+      createdAt: result.createdAt,
+      analysis: analysisData,
+      sectionScores,
+      sectionTotals,
+    });
+  } catch (error) {
+    console.error("Error fetching student result for HOD:", error);
+    res.status(500).json({ message: "Server error fetching student result." });
+  }
+};
 module.exports = {
+  getStudentResultForHOD,
   getTestAnalysisForHOD,
   getHodQuestionStats,
   addQuestionsToHodBank,
