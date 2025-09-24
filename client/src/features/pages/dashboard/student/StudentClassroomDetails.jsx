@@ -21,7 +21,7 @@ const StudentClassroomDetails = () => {
       setIsLoading(true);
       try {
         const response = await fetch(
-          `http://localhost:5000/api/student/classrooms/${classroomId}/scheduled-tests`,
+          `http://localhost:5000/api/student/classroom-tests/${classroomId}`, // <-- Call the new endpoint
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -37,7 +37,6 @@ const StudentClassroomDetails = () => {
     };
     fetchScheduledTests();
   }, [token, classroomId]);
-
   // --- NEW: Function to handle starting a scheduled test ---
   const handleStartScheduledTest = async (scheduledTestId) => {
     setStartTestError("");
@@ -91,8 +90,6 @@ const StudentClassroomDetails = () => {
             <p className="text-gray-400">Loading scheduled tests...</p>
           )}
           {error && <p className="text-red-500">Error: {error}</p>}
-
-          {/* Display any error messages from trying to start a test */}
           {startTestError && (
             <p className="text-red-500 text-center mb-4 p-3 bg-red-900/50 rounded-lg">
               {startTestError}
@@ -104,19 +101,34 @@ const StudentClassroomDetails = () => {
               There are currently no tests scheduled for this classroom.
             </p>
           )}
+
           <div className="space-y-4">
             {scheduledTests.map((test) => {
-              // --- NEW: Logic to determine the status of the test ---
-              const now = new Date();
+              const { status, resultId } = test;
               const startTime = new Date(test.startTime);
               const endTime = new Date(test.endTime);
-              let status = "upcoming";
-              if (now >= startTime && now <= endTime) {
-                status = "live";
-              } else if (now > endTime) {
-                status = "ended";
+              if (status === "attempted") {
+                return (
+                  <div
+                    key={test._id}
+                    className="bg-gray-700 p-4 rounded-lg flex justify-between items-center"
+                  >
+                    <div>
+                      <p className="font-bold text-lg">{test.title}</p>
+                      <p className="text-sm text-gray-400">
+                        Completed on:{" "}
+                        {new Date(test.updatedAt).toLocaleString()}
+                      </p>
+                    </div>
+                    <Link
+                      to={`/scheduled-results/${resultId}`}
+                      className="bg-blue-600 font-bold py-2 px-6 rounded-lg transition hover:bg-blue-700"
+                    >
+                      View Result
+                    </Link>
+                  </div>
+                );
               }
-
               return (
                 <div
                   key={test._id}
@@ -131,25 +143,14 @@ const StudentClassroomDetails = () => {
                   </div>
                   <button
                     onClick={() => handleStartScheduledTest(test._id)}
-                    // The button is only enabled if the status is 'live'
                     disabled={status !== "live"}
-                    className={`font-bold py-2 px-6 rounded-lg transition 
-                      ${
-                        status === "live"
-                          ? "bg-green-600 hover:bg-green-700 cursor-pointer"
-                          : ""
-                      }
-                      ${
-                        status === "upcoming"
-                          ? "bg-yellow-600 cursor-not-allowed"
-                          : ""
-                      }
-                      ${
-                        status === "ended"
-                          ? "bg-gray-600 cursor-not-allowed"
-                          : ""
-                      }
-                    `}
+                    className={`font-bold py-2 px-6 rounded-lg transition ${
+                      status === "live"
+                        ? "bg-green-600 hover:bg-green-700 cursor-pointer"
+                        : status === "upcoming"
+                        ? "bg-yellow-600 cursor-not-allowed"
+                        : "bg-gray-600 cursor-not-allowed"
+                    }`}
                   >
                     {status === "live" && "Start Test"}
                     {status === "upcoming" && "Upcoming"}

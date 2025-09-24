@@ -101,6 +101,9 @@ const HODTestAnalysis = () => {
                       Student Name
                     </th>
                     <th className="text-left py-3 px-4 font-semibold">Score</th>
+                    <th className="text-right py-3 px-4 font-semibold">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-700">
@@ -109,6 +112,14 @@ const HODTestAnalysis = () => {
                       <td className="py-3 px-4">{student.name}</td>
                       <td className="py-3 px-4">
                         {student.score} / {student.totalMarks}
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <Link
+                          to={`/hod/student-analysis/${scheduledTestId}/${student.studentId}`}
+                          className="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition text-sm"
+                        >
+                          View
+                        </Link>
                       </td>
                     </tr>
                   ))}

@@ -22,6 +22,7 @@ import ClassroomDetails from "./features/pages/dashboard/hod/ClassroomDetails";
 import StudentClassroomDetails from "./features/pages/dashboard/student/StudentClassroomDetails";
 import ScheduledResultAnalysis from "./features/pages/dashboard/student/ScheduledResultAnalysis";
 import HODTestAnalysis from "./features/pages/dashboard/hod/HODTestAnalysis";
+import HODStudentAnalysis from "./features/pages/dashboard/hod/HODStudentAnalysis";
 const App = () => {
   return (
     <Routes>
@@ -131,6 +132,14 @@ const App = () => {
         element={
           <ProtectedRoute role="HOD">
             <HODTestAnalysis />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/hod/student-analysis/:scheduledTestId/:studentId"
+        element={
+          <ProtectedRoute role="HOD">
+            <HODStudentAnalysis />
           </ProtectedRoute>
         }
       />
