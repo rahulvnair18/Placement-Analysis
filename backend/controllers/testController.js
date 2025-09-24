@@ -2,6 +2,7 @@ const Question = require("../models/question");
 const TestSession = require("../models/testSession");
 const ScheduledTest = require("../models/scheduledTest"); // <-- Import ScheduledTest model
 const Classroom = require("../models/classroom");
+const HodQuestion = require("../models/HodQuestion");
 // We no longer need the GoogleGenerativeAI library in this file
 // because students will only get questions from the database.
 
@@ -72,13 +73,13 @@ const startScheduledTest = async (req, res) => {
     const { scheduledTestId } = req.params;
     const studentId = req.user._id;
 
-    // 1. Find the scheduled test "event ticket".
+    // 1. Find the scheduled test "event ticket" (Unchanged)
     const scheduledTest = await ScheduledTest.findById(scheduledTestId);
     if (!scheduledTest) {
       return res.status(404).json({ message: "Scheduled test not found." });
     }
 
-    // 2. Security Check: Is the student a member of the classroom this test is for?
+    // 2. Security checks (Unchanged and correct)
     const classroom = await Classroom.findOne({
       _id: scheduledTest.classroomId,
       students: studentId,
@@ -88,8 +89,6 @@ const startScheduledTest = async (req, res) => {
         .status(403)
         .json({ message: "You are not authorized to start this test." });
     }
-
-    // 3. --- The Crucial Time Check ---
     const now = new Date();
     if (now < scheduledTest.startTime) {
       return res
@@ -100,36 +99,37 @@ const startScheduledTest = async (req, res) => {
       return res.status(403).json({ message: "This test has already ended." });
     }
 
-    // 4. If all checks pass, get the questions for the test.
-    // For now, we'll get random questions. Later, you could link specific questions to a scheduled test.
+    // 3. --- THE KEY UPGRADE: Get questions from the HOD's PRIVATE bank ---
+    console.log(
+      `Fetching questions from HOD's private bank for student: ${studentId}`
+    );
     const categories = ["Quantitative", "Reasoning", "English", "Programming"];
     const categoryPromises = categories.map((category) =>
-      Question.aggregate([
-        { $match: { section: category } },
+      // We now query the HodQuestion model
+      HodQuestion.aggregate([
+        // Crucial security check: only use questions from the HOD who scheduled the test
+        { $match: { section: category, hodId: scheduledTest.hodId } },
         { $sample: { size: 10 } },
       ])
     );
     const results = await Promise.all(categoryPromises);
     const selectedQuestions = results.flat();
 
+    // 4. Update the safety check and error message
     if (selectedQuestions.length < 40) {
-      return res
-        .status(500)
-        .json({ message: "Not enough questions in the bank for this test." });
+      return res.status(500).json({
+        message:
+          "The HOD has not added enough questions to their bank for this test.",
+      });
     }
 
     const questionIds = selectedQuestions.map((q) => q._id);
-
-    // 5. Create the unique "Exam Paper" for this student for this attempt.
     const newSession = await TestSession.create({ studentId, questionIds });
 
-    console.log(`Scheduled test started for student: ${studentId}`);
-
-    // 6. Send the test to the student, including the crucial FIXED end time.
     return res.status(200).json({
       questions: selectedQuestions,
       testSessionId: newSession._id,
-      endTime: scheduledTest.endTime, // <-- This is the key for the dynamic timer
+      endTime: scheduledTest.endTime,
     });
   } catch (error) {
     console.error("Error starting scheduled test:", error);

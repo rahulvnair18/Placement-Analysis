@@ -1,58 +1,57 @@
 const express = require("express");
 const router = express.Router();
 
-// Import the controller functions and the security guard
 const {
+  getTestAnalysisForHOD,
+  getHodQuestionStats,
+  addQuestionsToHodBank,
   createClassroom,
   getMyClassrooms,
   getClassroomDetails,
-  regenerateClassroomCode, // 👈 new function
+  regenerateClassroomCode,
   removeStudentFromClassroom,
   scheduleTest,
   getScheduledTestsForClassroom,
-  deleteClassroom, // ✅ new function
-} = require("../controllers/hodController");
+  deleteClassroom,
+} = require("../controllers/hodController"); // <-- Corrected import list
 const { hodProtect } = require("../middleware/hodMiddleware");
 
-// --- HOD Classroom Routes ---
-// Every route in this file is protected by the 'hodProtect' middleware.
+// Routes for HOD's private question bank
+router.post("/questions/add", hodProtect, addQuestionsToHodBank);
+router.get("/questions/stats", hodProtect, getHodQuestionStats);
 
-// Route to create a new classroom
-// Full Path: POST /api/hod/classrooms/create
+// Routes for managing classrooms
 router.post("/classrooms/create", hodProtect, createClassroom);
-
-// Route to get all of the HOD's own classrooms
-// Full Path: GET /api/hod/classrooms/my-classrooms
 router.get("/classrooms/my-classrooms", hodProtect, getMyClassrooms);
-
-// Route to get details of a specific classroom
-// Full Path: GET /api/hod/classrooms/:classroomId
 router.get("/classrooms/:classroomId", hodProtect, getClassroomDetails);
-
-// --- 🔥 NEW ROUTE ---
-// Regenerate classroom join code
-// Full Path: PUT /api/hod/classrooms/:classroomId/regenerate-code
 router.put(
   "/classrooms/:classroomId/regenerate-code",
   hodProtect,
   regenerateClassroomCode
 );
-
-// Route to remove a student from a classroom's roster
-// Full Path: PATCH /api/hod/classrooms/:classroomId/remove-student/:studentId
 router.patch(
   "/classrooms/:classroomId/remove-student/:studentId",
   hodProtect,
   removeStudentFromClassroom
 );
 router.post("/classrooms/:classroomId/schedule-test", hodProtect, scheduleTest);
-// --- NEW: Route to get the list of scheduled tests for a classroom ---
-// Full Path: GET /api/hod/classrooms/some_classroom_id/scheduled-tests
 router.get(
   "/classrooms/:classroomId/scheduled-tests",
   hodProtect,
   getScheduledTestsForClassroom
 );
 router.delete("/classrooms/:classroomId", hodProtect, deleteClassroom);
+router.get(
+  "/test-analysis/:scheduledTestId",
+  hodProtect,
+  getTestAnalysisForHOD
+);
+
+// --- THIS ROUTE WAS REMOVED BECAUSE IT DOES NOT BELONG HERE ---
+// router.get(
+//   "/scheduled-result/:resultId",
+//   hodProtect,
+//   getScheduledResultDetails
+// );
 
 module.exports = router;

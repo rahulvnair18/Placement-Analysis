@@ -3,11 +3,13 @@ const Result = require("../models/result");
 const Question = require("../models/question");
 const TestSession = require("../models/testSession");
 const mongoose = require("mongoose");
-
+const ScheduledTestResult = require("../models/ScheduledTestResult");
+const HodQuestion = require("../models/HodQuestion");
 const submitTest = async (req, res) => {
   try {
     const studentId = req.user._id;
-    const { answers, testSessionId } = req.body;
+    // We now look for an optional 'scheduledTestId' in the request
+    const { answers, testSessionId, scheduledTestId } = req.body;
 
     if (!answers || !testSessionId) {
       return res
@@ -23,59 +25,87 @@ const submitTest = async (req, res) => {
     }
 
     const questionIds = session.questionIds;
-    const correctAnswers = await Question.find({
-      _id: { $in: questionIds },
-    }).select("_id correctAnswer");
-
     let score = 0;
-    const totalMarks = correctAnswers.length;
+    let totalMarks = 0;
 
-    const correctAnswerMap = new Map();
-    correctAnswers.forEach((answer) => {
-      correctAnswerMap.set(answer._id.toString(), answer.correctAnswer);
-    });
+    // --- LOGIC SWITCH: Check if it's a scheduled test or a mock test ---
 
-    for (const questionId in answers) {
-      const correctAnswer = correctAnswerMap.get(questionId);
-      const studentAnswer = answers[questionId];
-      if (correctAnswer && correctAnswer === studentAnswer) {
-        score++;
+    if (scheduledTestId) {
+      // --- THIS IS A SCHEDULED TEST ---
+      console.log("Processing a SCHEDULED test submission...");
+
+      // 1. Grade against the HOD's private question bank
+      const correctAnswers = await HodQuestion.find({
+        _id: { $in: questionIds },
+      }).select("_id correctAnswer");
+
+      totalMarks = correctAnswers.length;
+      const correctAnswerMap = new Map();
+      correctAnswers.forEach((answer) => {
+        correctAnswerMap.set(answer._id.toString(), answer.correctAnswer);
+      });
+
+      for (const questionId in answers) {
+        if (correctAnswerMap.get(questionId) === answers[questionId]) {
+          score++;
+        }
       }
+
+      // 2. Save the result to the NEW ScheduledTestResult collection
+      const newResult = new ScheduledTestResult({
+        scheduledTestId,
+        studentId,
+        score,
+        totalMarks,
+        answers,
+      });
+      const savedResult = await newResult.save();
+
+      res.status(201).json({
+        message: "Scheduled Test submitted successfully!",
+        resultId: savedResult._id,
+      });
+    } else {
+      // --- THIS IS A MOCK TEST (Original Logic) ---
+      console.log("Processing a MOCK test submission...");
+
+      // 1. Grade against the main global question bank
+      const correctAnswers = await Question.find({
+        _id: { $in: questionIds },
+      }).select("_id correctAnswer");
+
+      totalMarks = correctAnswers.length;
+      const correctAnswerMap = new Map();
+      correctAnswers.forEach((answer) => {
+        correctAnswerMap.set(answer._id.toString(), answer.correctAnswer);
+      });
+
+      for (const questionId in answers) {
+        if (correctAnswerMap.get(questionId) === answers[questionId]) {
+          score++;
+        }
+      }
+
+      // 2. Save the result to the original Result collection
+      const newResult = new Result({
+        studentId,
+        score,
+        totalMarks,
+        answers,
+      });
+      const savedResult = await newResult.save();
+
+      res.status(201).json({
+        message: "Mock Test submitted successfully!",
+        resultId: savedResult._id,
+      });
     }
-
-    // --- DEBUGGING LOGS ---
-    // Let's print the values of our variables right before we try to save them.
-    // This will make the "ink" visible and show us exactly what's being saved.
-    console.log("--- Preparing to Save Result ---");
-    console.log("Student ID:", studentId);
-    console.log("Final Score:", score);
-    console.log("Total Marks:", totalMarks);
-    console.log("Submitted Answers Object:", answers);
-    console.log("---------------------------------");
-
-    // 5. Save the final "Report Card" to the database.
-    const newResult = new Result({
-      studentId,
-      score,
-      totalMarks,
-      answers,
-    });
-
-    const savedResult = await newResult.save();
-
-    console.log(
-      `Result saved for student ${studentId}. Score: ${score}/${totalMarks}`
-    );
-
-    res.status(201).json({
-      message: "Test submitted successfully!",
-      resultId: savedResult._id,
-    });
   } catch (error) {
     console.error("Error submitting test:", error);
     res.status(500).json({ message: "Server error during test submission." });
   }
 };
+
 const getResultDetails = async (req, res) => {
   try {
     const { resultId } = req.params;
@@ -168,8 +198,77 @@ const getMyResultsHistory = async (req, res) => {
     res.status(500).json({ message: "Server error fetching results history." });
   }
 };
+// Add this new function to your resultController.js file
+
+const getScheduledResultDetails = async (req, res) => {
+  try {
+    const { resultId } = req.params;
+    const studentId = req.user._id;
+
+    // 1. Look in the NEW ScheduledTestResult collection
+    const result = await ScheduledTestResult.findById(resultId).lean();
+    if (!result || result.studentId.toString() !== studentId.toString()) {
+      return res
+        .status(404)
+        .json({ message: "Result not found or you are not authorized." });
+    }
+
+    // Defensive check
+    if (!result.answers || Object.keys(result.answers).length === 0) {
+      return res.status(200).json({
+        /* Return empty analysis */
+      });
+    }
+
+    const questionIds = Object.keys(result.answers);
+
+    // 2. Get the questions from the HOD's private question bank
+    const questions = await HodQuestion.find({
+      _id: { $in: questionIds },
+    }).lean();
+
+    // 3. Perform the analysis (This logic is the same as before)
+    const sectionScores = {};
+    const sectionTotals = {};
+
+    questions.forEach((question) => {
+      const section = question.section;
+      if (!sectionScores[section]) sectionScores[section] = 0;
+      if (!sectionTotals[section]) sectionTotals[section] = 0;
+      sectionTotals[section]++;
+      if (result.answers[question._id.toString()] === question.correctAnswer) {
+        sectionScores[section]++;
+      }
+    });
+
+    const analysisData = questions.map((question) => ({
+      _id: question._id,
+      questionText: question.questionText,
+      options: question.options,
+      correctAnswer: question.correctAnswer,
+      explanation: question.explanation,
+      studentAnswer: result.answers[question._id.toString()] || "Not Attempted",
+      isCorrect:
+        result.answers[question._id.toString()] === question.correctAnswer,
+    }));
+
+    // 4. Send the complete data package back
+    res.status(200).json({
+      score: result.score,
+      totalMarks: result.totalMarks,
+      createdAt: result.createdAt,
+      analysis: analysisData,
+      sectionScores,
+      sectionTotals,
+    });
+  } catch (error) {
+    console.error("Error fetching scheduled result details:", error);
+    res.status(500).json({ message: "Server error fetching result details." });
+  }
+};
 module.exports = {
   submitTest,
   getResultDetails,
   getMyResultsHistory,
+  getScheduledResultDetails,
 };

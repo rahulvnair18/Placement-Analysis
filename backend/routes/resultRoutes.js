@@ -3,19 +3,22 @@ const router = express.Router();
 const {
   submitTest,
   getResultDetails,
-  getMyResultsHistory, // <-- 1. Import the new function
+  getMyResultsHistory,
+  getScheduledResultDetails, // <-- 1. Import the new function
 } = require("../controllers/resultController");
 const { protect } = require("../middleware/authMiddleware");
 
-// Route for submitting a test (POST /api/results/submit)
+// Route for submitting a test
 router.post("/submit", protect, submitTest);
 
-// --- 2. ADD THE NEW ROUTE HERE ---
-// Route for fetching the logged-in student's test history (GET /api/results/my-history)
-// This MUST come BEFORE the '/:resultId' route to work correctly.
+// Route for fetching the student's mock test history
 router.get("/my-history", protect, getMyResultsHistory);
 
-// Route for fetching a single result by its ID (GET /api/results/some_id)
+// --- 2. ADD THE NEW ROUTE FOR SCHEDULED RESULTS ---
+// This route matches what the frontend is calling.
+router.get("/scheduled-results/:resultId", protect, getScheduledResultDetails);
+
+// Route for fetching a single MOCK result by its ID
 router.get("/:resultId", protect, getResultDetails);
 
 module.exports = router;
