@@ -3,9 +3,64 @@ const TestSession = require("../models/testSession");
 const ScheduledTest = require("../models/scheduledTest"); // <-- Import ScheduledTest model
 const Classroom = require("../models/classroom");
 const HodQuestion = require("../models/HodQuestion");
+const ScheduledTestResult = require("../models/ScheduledTestResult");
 // We no longer need the GoogleGenerativeAI library in this file
 // because students will only get questions from the database.
+const autoSubmitTest = async (req, res) => {
+  try {
+    const studentId = req.user._id;
+    // It receives the current answers, session ID, scheduled test ID, and the reason
+    const { answers, testSessionId, scheduledTestId, reason } = req.body;
 
+    if (!answers || !testSessionId || !scheduledTestId || !reason) {
+      return res
+        .status(400)
+        .json({ message: "Missing required data for auto-submission." });
+    }
+
+    // 1. Find the session to get the list of questions for grading
+    const session = await TestSession.findById(testSessionId);
+    if (!session || session.studentId.toString() !== studentId.toString()) {
+      return res.status(403).json({ message: "Invalid test session." });
+    }
+    const questionIds = session.questionIds;
+
+    // 2. Grade the submitted answers against the HOD's question bank
+    const correctAnswers = await HodQuestion.find({
+      _id: { $in: questionIds },
+    }).select("_id correctAnswer");
+    let score = 0;
+    const totalMarks = correctAnswers.length;
+    const correctAnswerMap = new Map();
+    correctAnswers.forEach((answer) => {
+      correctAnswerMap.set(answer._id.toString(), answer.correctAnswer);
+    });
+    for (const questionId in answers) {
+      if (correctAnswerMap.get(questionId) === answers[questionId]) {
+        score++;
+      }
+    }
+
+    // 3. Save the result to the ScheduledTestResult collection with the malpractice reason
+    const newResult = new ScheduledTestResult({
+      scheduledTestId,
+      studentId,
+      score,
+      totalMarks,
+      answers,
+      malpracticeReason: reason, // <-- Store the reason
+    });
+    const savedResult = await newResult.save();
+
+    res.status(201).json({
+      message: "Test auto-submitted due to malpractice.",
+      resultId: savedResult._id,
+    });
+  } catch (error) {
+    console.error("Error during auto-submission:", error);
+    res.status(500).json({ message: "Server error during auto-submission." });
+  }
+};
 const startTest = async (req, res) => {
   const studentId = req.user._id; // Get student ID from the 'protect' middleware
 
@@ -137,4 +192,4 @@ const startScheduledTest = async (req, res) => {
   }
 };
 
-module.exports = { startTest, startScheduledTest };
+module.exports = { startTest, startScheduledTest, autoSubmitTest };

@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   startTest,
   startScheduledTest,
+  autoSubmitTest,
 } = require("../controllers/testController");
 const { protect } = require("../middleware/authMiddleware");
 
@@ -10,4 +11,5 @@ const { protect } = require("../middleware/authMiddleware");
 // It is protected to ensure only logged-in users can access it.
 router.post("/start-mock", protect, startTest);
 router.post("/start-scheduled/:scheduledTestId", protect, startScheduledTest);
+router.post("/auto-submit", protect, autoSubmitTest);
 module.exports = router;
