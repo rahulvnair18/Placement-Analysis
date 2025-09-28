@@ -95,7 +95,64 @@ const TestEngine = () => {
 
     return () => clearInterval(interval);
   }, [isLoading, currentSectionIndex, location.state]);
+  const autoSubmitTest = async (reason) => {
+    if (isSubmitting) return; // Prevent multiple submissions
+    setIsSubmitting(true);
+    console.log(`Auto-submitting test. Reason: ${reason}`);
 
+    try {
+      const response = await fetch(
+        "http://localhost:5000/api/tests/auto-submit",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            answers,
+            testSessionId,
+            scheduledTestId,
+            reason, // e.g., "Tab Switched"
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Auto-submission failed.");
+      }
+
+      const resultData = await response.json();
+      navigate(`/test/completed/${resultData.resultId}`, {
+        state: { isScheduled: !!scheduledTestId },
+      });
+    } catch (error) {
+      setError(error.message);
+      setIsSubmitting(false); // Show error to user
+    }
+  };
+  useEffect(() => {
+    // This logic only applies to scheduled tests
+    if (location.state?.testType !== "scheduled") {
+      return;
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // If the tab becomes hidden, trigger the auto-submit
+        autoSubmitTest("Tab Switched");
+      }
+    };
+
+    // Add the event listener when the test starts
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    // This is a cleanup function: remove the listener when the test is over
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [answers, testSessionId, scheduledTestId, isSubmitting]);
   const submitTest = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
@@ -180,29 +237,29 @@ const TestEngine = () => {
   );
   const currentQuestion = currentSectionQuestions[currentQuestionIndex];
 
-  // --- UI RENDER LOGIC (Unchanged) ---
+  // --- UI RENDER LOGIC (Styling Updated) ---
   if (isSubmitting) {
     return (
-      <div className="min-h-screen bg-gray-900 flex justify-center items-center text-white text-2xl p-10">
+      <div className="min-h-screen bg-gradient-to-br from-blue-700 via-blue-900 to-orange-700 flex justify-center items-center text-white text-2xl p-10 font-semibold">
         Submitting your test and calculating results...
       </div>
     );
   }
   if (isLoading)
     return (
-      <div className="min-h-screen bg-gray-900 flex justify-center items-center text-white text-2xl p-10">
+      <div className="min-h-screen bg-gradient-to-br from-blue-700 via-blue-900 to-orange-700 flex justify-center items-center text-white text-2xl p-10 font-semibold">
         Loading Test...
       </div>
     );
   if (error)
     return (
-      <div className="min-h-screen bg-gray-900 flex justify-center items-center text-red-500 text-2xl p-10">
+      <div className="min-h-screen bg-gradient-to-br from-blue-700 via-blue-900 to-orange-700 flex justify-center items-center text-red-300 text-2xl p-10 font-semibold">
         Error: {error}
       </div>
     );
   if (!currentQuestion)
     return (
-      <div className="min-h-screen bg-gray-900 flex justify-center items-center text-white text-2xl p-10">
+      <div className="min-h-screen bg-gradient-to-br from-blue-700 via-blue-900 to-orange-700 flex justify-center items-center text-white text-2xl p-10 font-semibold">
         Preparing test environment...
       </div>
     );
@@ -215,40 +272,47 @@ const TestEngine = () => {
       .padStart(2, "0")}`;
   };
 
+  const cardStyle =
+    "bg-black/20 backdrop-blur-lg border border-white/20 rounded-2xl shadow-xl";
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-white flex flex-col p-4 gap-4 font-sans">
-      {/* HEADER (Unchanged) */}
-      <header className="flex justify-between items-center bg-gray-800 p-4 rounded-lg shadow-md">
+    <div className="relative min-h-screen text-white flex flex-col p-4 gap-4 font-sans">
+      {/* Background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-700 via-blue-900 to-orange-700"></div>
+      <div className="absolute inset-0 backdrop-blur-sm"></div>
+
+      {/* HEADER */}
+      <header
+        className={`relative z-10 flex justify-between items-center p-4 rounded-2xl ${cardStyle}`}
+      >
         <h1 className="text-2xl font-bold">{`Section ${
           currentSectionIndex + 1
         }: ${SECTIONS[currentSectionIndex].name}`}</h1>
-        <div className="text-2xl font-mono bg-red-600 px-4 py-2 rounded-lg">
+        <div className="text-2xl font-mono bg-orange-500/80 px-4 py-2 rounded-lg shadow-lg">
           {formatTime(timer)}
         </div>
       </header>
 
-      <div className="flex flex-1 gap-4 overflow-hidden">
-        {/* MAIN CONTENT (Unchanged) */}
-        <main className="flex-1 bg-gray-800 p-6 rounded-lg shadow-md flex flex-col">
+      <div className="relative z-10 flex flex-1 gap-4 overflow-hidden">
+        {/* MAIN CONTENT */}
+        <main className={`flex-1 p-6 flex flex-col ${cardStyle}`}>
           <div className="mb-4">
-            <h2 className="text-xl font-semibold mb-2">{`Question ${
+            <h2 className="text-xl font-semibold mb-2 text-gray-300">{`Question ${
               currentQuestionIndex + 1
             } of ${currentSectionQuestions.length}`}</h2>
-            <p className="text-gray-300 text-lg">
-              {currentQuestion.questionText}
-            </p>
+            <p className="text-white text-lg">{currentQuestion.questionText}</p>
           </div>
           <div className="flex flex-col gap-3 mt-4">
             {currentQuestion.options.map((option, index) => (
               <button
                 key={index}
                 onClick={() => handleSelectAnswer(currentQuestion._id, option)}
-                className={`w-full text-left p-3 rounded-lg border-2 border-gray-600 transition-colors 
-                  ${
-                    answers[currentQuestion._id] === option
-                      ? "bg-blue-600 border-blue-500"
-                      : "hover:bg-gray-700"
-                  }`}
+                className={`w-full text-left p-3 rounded-lg border-2 transition-colors 
+                                ${
+                                  answers[currentQuestion._id] === option
+                                    ? "bg-blue-600 border-blue-400"
+                                    : "border-white/20 hover:bg-white/10"
+                                }`}
               >
                 {option}
               </button>
@@ -257,7 +321,7 @@ const TestEngine = () => {
           <div className="mt-auto pt-4 flex justify-between">
             <button
               onClick={handlePreviousQuestion}
-              className="bg-gray-600 py-2 px-6 rounded-lg hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-white/10 border border-white/20 py-2 px-6 rounded-lg hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={currentQuestionIndex === 0}
             >
               Previous
@@ -275,29 +339,30 @@ const TestEngine = () => {
         </main>
 
         {/* --- SIDE PANEL (Question Palette) --- */}
-        <aside className="w-64 bg-gray-800 p-4 rounded-lg shadow-md overflow-y-auto">
-          <h3 className="font-bold mb-4 text-center">Question Palette</h3>
+        <aside className={`w-64 p-4 overflow-y-auto ${cardStyle}`}>
+          <h3 className="font-bold mb-4 text-center text-lg">
+            Question Palette
+          </h3>
           <div className="grid grid-cols-5 gap-2">
             {currentSectionQuestions.map((q, index) => {
-              // --- NEW: LOGIC FOR BUTTON COLOR ---
               const isAnswered = answers[q._id] !== undefined;
               const isCurrent = index === currentQuestionIndex;
 
               let buttonClass =
-                "h-10 w-10 flex items-center justify-center rounded";
+                "h-10 w-10 flex items-center justify-center rounded transition-all";
               if (isCurrent) {
-                buttonClass += " bg-blue-600 ring-2 ring-white";
+                buttonClass += " bg-orange-500 ring-2 ring-white scale-110";
               } else if (isAnswered) {
                 buttonClass += " bg-green-600 hover:bg-green-500";
               } else {
-                buttonClass += " bg-gray-600 hover:bg-gray-500";
+                buttonClass += " bg-black/20 hover:bg-white/20";
               }
 
               return (
                 <button
                   key={index}
                   onClick={() => handleJumpToQuestion(index)}
-                  className={buttonClass} // Use the dynamically generated class
+                  className={buttonClass}
                 >
                   {index + 1}
                 </button>
@@ -307,7 +372,7 @@ const TestEngine = () => {
           <div className="mt-6 text-center">
             <button
               onClick={handleNextSection}
-              className="bg-green-600 w-full py-2 rounded-lg hover:bg-green-500"
+              className="bg-orange-600 w-full font-bold py-3 rounded-lg hover:bg-orange-500 transition-all shadow-lg"
             >
               {currentSectionIndex < SECTIONS.length - 1
                 ? "Submit Section"

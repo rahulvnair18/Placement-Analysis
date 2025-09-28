@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from "react";
 import AuthContext from "../../../../context/AuthContext";
-import AnalysisDashboard from "./AnalysisDashboard"; // We will re-use the component we already built
+import AnalysisDashboard from "./AnalysisDashboard";
 
 const LatestAnalysisView = () => {
   const { token } = useContext(AuthContext);
@@ -12,12 +12,11 @@ const LatestAnalysisView = () => {
   useEffect(() => {
     const fetchLatestResultDetails = async () => {
       if (!token) {
-        setIsLoading(false); // Stop loading if there's no token
+        setIsLoading(false);
         return;
       }
       setIsLoading(true);
       try {
-        // 1. Fetch the history to find the latest test ID
         const historyResponse = await fetch(
           "http://localhost:5000/api/results/my-history",
           {
@@ -31,7 +30,6 @@ const LatestAnalysisView = () => {
         if (historyData.length > 0) {
           const latestResultId = historyData[0]._id;
 
-          // 2. Fetch the full details for ONLY the latest test
           const detailsResponse = await fetch(
             `http://localhost:5000/api/results/${latestResultId}`,
             {
@@ -54,32 +52,56 @@ const LatestAnalysisView = () => {
 
   if (isLoading) {
     return (
-      <div className="text-center text-gray-400 p-8">
-        Loading your latest analysis...
+      <div className="relative min-h-screen flex justify-center items-center">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-700 via-blue-900 to-orange-700"></div>
+        <div className="absolute inset-0 backdrop-blur-sm"></div>
+        <p className="relative z-10 text-white text-xl">
+          Loading your latest analysis...
+        </p>
       </div>
     );
   }
 
   if (error) {
-    return <div className="text-center text-red-500 p-8">Error: {error}</div>;
+    return (
+      <div className="relative min-h-screen flex justify-center items-center">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-700 via-blue-900 to-orange-700"></div>
+        <div className="absolute inset-0 backdrop-blur-sm"></div>
+        <p className="relative z-10 text-red-400 text-xl">Error: {error}</p>
+      </div>
+    );
   }
 
-  // If there's a result, render the full analysis component for it.
-  // If not, show a message.
   return (
-    <div>
-      {latestResultDetails ? (
-        // --- THE CHANGE: We now render our new dashboard and pass the data to it ---
-        <AnalysisDashboard resultData={latestResultDetails} />
-      ) : (
-        <div className="text-center text-gray-400 p-8">
-          <h2 className="text-2xl font-bold">No Analysis Available</h2>
-          <p className="mt-2">
-            You must complete at least one test to view your performance
-            analysis.
-          </p>
-        </div>
-      )}
+    <div className="relative min-h-screen">
+      {/* Gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-700 via-blue-900 to-orange-700"></div>
+      <div className="absolute inset-0 backdrop-blur-sm"></div>
+
+      {/* Content */}
+      <div className="relative z-10 w-full max-w-7xl mx-auto p-8">
+        {latestResultDetails ? (
+          <div className="bg-white/10 backdrop-blur-lg p-8 rounded-2xl shadow-xl border border-white/20">
+            <h1 className="text-3xl font-bold mb-6 bg-gradient-to-r from-orange-400 to-blue-300 bg-clip-text text-transparent drop-shadow-lg">
+              Your Latest Analysis
+            </h1>
+            <AnalysisDashboard resultData={latestResultDetails} />
+          </div>
+        ) : (
+          <div className="bg-white/10 backdrop-blur-lg p-10 rounded-2xl shadow-xl border border-white/20 text-center">
+            <h2 className="text-3xl font-bold text-orange-300 mb-4">
+              No Analysis Available
+            </h2>
+            <p className="text-white/90 text-lg mb-6">
+              🚀 Take your first test to unlock performance insights and track
+              your progress here.
+            </p>
+            <button className="bg-gradient-to-r from-orange-500 to-blue-500 px-6 py-3 rounded-lg font-semibold text-white hover:opacity-90 transition">
+              Start a Test
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

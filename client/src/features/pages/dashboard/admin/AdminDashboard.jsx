@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext, useRef } from "react";
 import AuthContext from "../../../../context/AuthContext";
 
 const AdminDashboard = () => {
-  // --- STATE MANAGEMENT ---
+  // --- STATE MANAGEMENT (Unchanged) ---
   const [activeView, setActiveView] = useState("students");
   const [students, setStudents] = useState([]);
   const [hods, setHods] = useState([]);
@@ -17,12 +17,12 @@ const AdminDashboard = () => {
 
   const { token, logoutAction } = useContext(AuthContext);
 
-  // Refs for GSAP animations
+  // Refs for GSAP animations (Unchanged)
   const sidebarRef = useRef(null);
   const headerRef = useRef(null);
   const contentRef = useRef(null);
 
-  // --- DATA FETCHING ---
+  // --- DATA FETCHING (Unchanged) ---
   useEffect(() => {
     const fetchAdminData = async () => {
       setIsLoading(true);
@@ -55,8 +55,8 @@ const AdminDashboard = () => {
 
     if (token) fetchAdminData();
 
-    // GSAP animations
-    import("gsap").then((gsap) => {
+    // GSAP animations (Unchanged)
+    import("gsap").then(({ gsap }) => {
       gsap.fromTo(
         sidebarRef.current,
         { x: -200, opacity: 0 },
@@ -75,7 +75,7 @@ const AdminDashboard = () => {
     });
   }, [token]);
 
-  // --- ACTION HANDLERS ---
+  // --- ACTION HANDLERS (Unchanged) ---
   const handleAddQuestions = async () => {
     setIsGenerating(true);
     setGenerationMessage(
@@ -108,39 +108,44 @@ const AdminDashboard = () => {
     }
   };
 
-  // --- RENDER LOGIC ---
+  // --- RENDER LOGIC (Styling Updated) ---
   const renderContent = () => {
     if (isLoading)
-      return <p className="text-gray-200 text-center mt-8">Loading data...</p>;
+      return <p className="text-gray-300 text-center mt-8">Loading data...</p>;
     if (error)
       return <p className="text-red-400 text-center mt-8">Error: {error}</p>;
+
+    const tableBaseClass = "min-w-full bg-black/10 rounded-xl text-white";
+    const thClass =
+      "text-left p-4 font-semibold text-gray-300 border-b border-white/20";
+    const tdClass = "p-4";
+    const trClass =
+      "border-b border-white/10 hover:bg-white/5 transition-colors";
+    const tableTitleClass = "text-2xl font-bold text-orange-300 mb-4";
 
     switch (activeView) {
       case "students":
         return (
           <div className="overflow-x-auto">
-            <h3 className="text-2xl font-bold text-orange-300 mb-4">
+            <h3 className={tableTitleClass}>
               All Students ({students.length})
             </h3>
-            <table className="min-w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-xl">
+            <table className={tableBaseClass}>
               <thead>
                 <tr className="border-b border-white/20">
-                  <th className="text-left p-3">Full Name</th>
-                  <th className="text-left p-3">Registration ID</th>
-                  <th className="text-left p-3">Roll No</th>
-                  <th className="text-left p-3">Batch</th>
+                  <th className={thClass}>Full Name</th>
+                  <th className={thClass}>Registration ID</th>
+                  <th className={thClass}>Roll No</th>
+                  <th className={thClass}>Batch</th>
                 </tr>
               </thead>
               <tbody>
                 {students.map((s) => (
-                  <tr
-                    key={s._id}
-                    className="border-b border-white/10 hover:bg-blue-900/30"
-                  >
-                    <td className="p-3">{s.fullName}</td>
-                    <td className="p-3">{s.regId}</td>
-                    <td className="p-3">{s.rollNo}</td>
-                    <td className="p-3">{s.batch}</td>
+                  <tr key={s._id} className={trClass}>
+                    <td className={tdClass}>{s.fullName}</td>
+                    <td className={tdClass}>{s.regId}</td>
+                    <td className={tdClass}>{s.rollNo}</td>
+                    <td className={tdClass}>{s.batch}</td>
                   </tr>
                 ))}
               </tbody>
@@ -149,25 +154,20 @@ const AdminDashboard = () => {
         );
       case "hods":
         return (
-          <div>
-            <h3 className="text-2xl font-bold text-orange-300 mb-4">
-              All HODs ({hods.length})
-            </h3>
-            <table className="min-w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-xl">
+          <div className="overflow-x-auto">
+            <h3 className={tableTitleClass}>All HODs ({hods.length})</h3>
+            <table className={tableBaseClass}>
               <thead>
                 <tr className="border-b border-white/20">
-                  <th className="text-left p-3">Full Name</th>
-                  <th className="text-left p-3">Registration ID</th>
+                  <th className={thClass}>Full Name</th>
+                  <th className={thClass}>Registration ID</th>
                 </tr>
               </thead>
               <tbody>
                 {hods.map((h) => (
-                  <tr
-                    key={h._id}
-                    className="border-b border-white/10 hover:bg-blue-900/30"
-                  >
-                    <td className="p-3">{h.fullName}</td>
-                    <td className="p-3">{h.regId}</td>
+                  <tr key={h._id} className={trClass}>
+                    <td className={tdClass}>{h.fullName}</td>
+                    <td className={tdClass}>{h.regId}</td>
                   </tr>
                 ))}
               </tbody>
@@ -176,27 +176,24 @@ const AdminDashboard = () => {
         );
       case "classrooms":
         return (
-          <div>
-            <h3 className="text-2xl font-bold text-orange-300 mb-4">
+          <div className="overflow-x-auto">
+            <h3 className={tableTitleClass}>
               All Classrooms ({classrooms.length})
             </h3>
-            <table className="min-w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-xl">
+            <table className={tableBaseClass}>
               <thead>
                 <tr className="border-b border-white/20">
-                  <th className="text-left p-3">Classroom Name</th>
-                  <th className="text-left p-3">HOD</th>
-                  <th className="text-left p-3">Student Count</th>
+                  <th className={thClass}>Classroom Name</th>
+                  <th className={thClass}>HOD</th>
+                  <th className={thClass}>Student Count</th>
                 </tr>
               </thead>
               <tbody>
                 {classrooms.map((c) => (
-                  <tr
-                    key={c._id}
-                    className="border-b border-white/10 hover:bg-blue-900/30"
-                  >
-                    <td className="p-3">{c.name}</td>
-                    <td className="p-3">{c.hodId?.fullName || "N/A"}</td>
-                    <td className="p-3">{c.students.length}</td>
+                  <tr key={c._id} className={trClass}>
+                    <td className={tdClass}>{c.name}</td>
+                    <td className={tdClass}>{c.hodId?.fullName || "N/A"}</td>
+                    <td className={tdClass}>{c.students.length}</td>
                   </tr>
                 ))}
               </tbody>
@@ -208,17 +205,20 @@ const AdminDashboard = () => {
     }
   };
 
+  const cardStyle =
+    "bg-black/20 backdrop-blur-lg border border-white/20 rounded-2xl shadow-xl";
+
   return (
-    <div className="relative min-h-screen overflow-hidden">
+    <div className="relative min-h-screen overflow-hidden text-white">
       {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-700 via-blue-900 to-orange-700"></div>
       <div className="absolute inset-0 backdrop-blur-sm"></div>
 
-      <div className="relative z-10 flex gap-6 p-6 h-[calc(100vh-1rem)]">
+      <div className="relative z-10 flex gap-6 p-6 h-screen">
         {/* Sidebar */}
         <aside
           ref={sidebarRef}
-          className="w-64 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 shadow-2xl flex flex-col gap-4"
+          className={`${cardStyle} w-64 p-6 flex flex-col gap-4`}
         >
           <h2 className="text-3xl font-extrabold text-orange-400 mb-6 drop-shadow-lg">
             Admin Panel
@@ -231,7 +231,7 @@ const AdminDashboard = () => {
                 className={`text-left px-4 py-2 rounded-lg font-semibold transition-all border ${
                   activeView === view
                     ? "bg-blue-600 border-orange-400 shadow-lg scale-105"
-                    : "bg-white/10 border-white/20 hover:bg-blue-500/40"
+                    : "bg-white/10 border-transparent hover:bg-white/20"
                 }`}
               >
                 {view.charAt(0).toUpperCase() + view.slice(1)}
@@ -241,7 +241,7 @@ const AdminDashboard = () => {
           <div className="mt-auto">
             <button
               onClick={logoutAction}
-              className="w-full text-center bg-red-500 px-4 py-2 rounded-lg font-semibold hover:bg-red-600 transition shadow-md"
+              className="w-full text-center bg-red-600 px-4 py-2 rounded-lg font-semibold hover:bg-red-700 transition shadow-md"
             >
               Logout
             </button>
@@ -249,49 +249,48 @@ const AdminDashboard = () => {
         </aside>
 
         {/* Right Content */}
-        <div className="flex-1 flex flex-col gap-6 h-full">
-          <header
-            ref={headerRef}
-            className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-lg p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
-          >
-            <div>
-              <h2 className="text-2xl font-bold text-orange-300 drop-shadow-md">
-                Admin Tools
-              </h2>
-              <p className="text-gray-200 text-sm">
-                Add new questions to the global question bank.
-              </p>
-            </div>
+        <div className="flex-1 flex flex-col gap-6 h-full overflow-hidden">
+          <header ref={headerRef} className={`${cardStyle} p-6`}>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-orange-300 drop-shadow-md">
+                  Admin Tools
+                </h2>
+                <p className="text-gray-300 text-sm">
+                  Add new questions to the global question bank.
+                </p>
+              </div>
 
-            <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
-              <select
-                value={questionCategory}
-                onChange={(e) => setQuestionCategory(e.target.value)}
-                className="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="Quantitative">Quantitative</option>
-                <option value="Reasoning">Reasoning</option>
-                <option value="English">English</option>
-                <option value="Programming">Programming</option>
-              </select>
-              <input
-                type="number"
-                value={questionCount}
-                onChange={(e) => setQuestionCount(e.target.value)}
-                className="bg-white/10 border border-white/20 rounded-lg w-24 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                min="1"
-                max="50"
-              />
-              <button
-                onClick={handleAddQuestions}
-                disabled={isGenerating}
-                className="bg-green-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-wait"
-              >
-                {isGenerating ? "Generating..." : "Generate & Add"}
-              </button>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+                <select
+                  value={questionCategory}
+                  onChange={(e) => setQuestionCategory(e.target.value)}
+                  className="bg-black/20 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-orange-400"
+                >
+                  <option>Quantitative</option>
+                  <option>Reasoning</option>
+                  <option>English</option>
+                  <option>Programming</option>
+                </select>
+                <input
+                  type="number"
+                  value={questionCount}
+                  onChange={(e) => setQuestionCount(e.target.value)}
+                  className="bg-black/20 border border-white/20 rounded-lg w-full sm:w-24 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  min="1"
+                  max="50"
+                />
+                <button
+                  onClick={handleAddQuestions}
+                  disabled={isGenerating}
+                  className="bg-green-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-wait"
+                >
+                  {isGenerating ? "Generating..." : "Generate & Add"}
+                </button>
+              </div>
             </div>
             {generationMessage && (
-              <p className="text-sm text-gray-200 h-5 text-right">
+              <p className="text-sm text-gray-300 h-5 mt-2 text-right">
                 {generationMessage}
               </p>
             )}
@@ -299,7 +298,7 @@ const AdminDashboard = () => {
 
           <main
             ref={contentRef}
-            className="flex-1 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 shadow-xl overflow-y-auto"
+            className={`${cardStyle} flex-1 p-6 overflow-y-auto`}
           >
             {renderContent()}
           </main>

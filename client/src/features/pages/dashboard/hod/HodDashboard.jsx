@@ -1,23 +1,47 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
+import gsap from "gsap";
 import { Link } from "react-router-dom";
+
 import AuthContext from "../../../../context/AuthContext";
 import CreateClassroomModal from "./CreateClassroomModal";
 
 const HodDashboard = () => {
-  const [classrooms, setClassrooms] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const { user, token, logoutAction } = useContext(AuthContext);
-
-  // --- State for the new features ---
   const [activeView, setActiveView] = useState("classrooms");
+  const [classrooms, setClassrooms] = useState([]);
   const [hodQuestionStats, setHodQuestionStats] = useState([]);
   const [questionCategory, setQuestionCategory] = useState("Quantitative");
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationMessage, setGenerationMessage] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Fetches BOTH classrooms and question stats
+  // Refs for animation
+  const sidebarRef = useRef(null);
+  const headerRef = useRef(null);
+  const contentRef = useRef(null);
+
+  useEffect(() => {
+    // Animate dashboard components
+    gsap.fromTo(
+      sidebarRef.current,
+      { x: -200, opacity: 0 },
+      { x: 0, opacity: 1, duration: 1.2, ease: "power3.out" }
+    );
+    gsap.fromTo(
+      headerRef.current,
+      { y: -50, opacity: 0 },
+      { y: 0, opacity: 1, duration: 1, delay: 0.3, ease: "power3.out" }
+    );
+    gsap.fromTo(
+      contentRef.current,
+      { y: 50, opacity: 0 },
+      { y: 0, opacity: 1, duration: 1.2, delay: 0.5, ease: "power3.out" }
+    );
+  }, []);
+
+  // Fetch classrooms and question stats
   const fetchData = async () => {
     setIsLoading(true);
     try {
@@ -29,9 +53,8 @@ const HodDashboard = () => {
         fetch("http://localhost:5000/api/hod/questions/stats", { headers }),
       ]);
 
-      if (!classroomsRes.ok || !statsRes.ok) {
-        throw new Error("Failed to fetch all required dashboard data.");
-      }
+      if (!classroomsRes.ok || !statsRes.ok)
+        throw new Error("Failed to fetch dashboard data.");
 
       const classroomsData = await classroomsRes.json();
       const statsData = await statsRes.json();
@@ -49,7 +72,6 @@ const HodDashboard = () => {
     if (token) fetchData();
   }, [token]);
 
-  // Handler for adding questions to the HOD's private bank
   const handleAddQuestions = async () => {
     setIsGenerating(true);
     setGenerationMessage(`Generating 10 ${questionCategory} questions...`);
@@ -62,13 +84,13 @@ const HodDashboard = () => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ category: questionCategory, count: 10 }), // Fixed to 10
+          body: JSON.stringify({ category: questionCategory, count: 10 }),
         }
       );
       const data = await response.json();
       if (!response.ok) throw new Error(data.message);
       setGenerationMessage(data.message);
-      fetchData(); // Refresh stats
+      fetchData();
     } catch (err) {
       setGenerationMessage(`Error: ${err.message}`);
     } finally {
@@ -78,12 +100,8 @@ const HodDashboard = () => {
   };
 
   const handleDeleteClassroom = async (classroomId, classroomName) => {
-    // This function remains the same
-    if (
-      !window.confirm(`Are you sure you want to delete "${classroomName}"?`)
-    ) {
+    if (!window.confirm(`Are you sure you want to delete "${classroomName}"?`))
       return;
-    }
     try {
       const response = await fetch(
         `http://localhost:5000/api/hod/classrooms/${classroomId}`,
@@ -93,24 +111,22 @@ const HodDashboard = () => {
         }
       );
       if (!response.ok) throw new Error("Failed to delete classroom.");
-      fetchData(); // Use fetchData to refresh both classrooms and stats
+      fetchData();
     } catch (err) {
       alert(`Error: ${err.message}`);
     }
   };
 
-  // Renders different content based on the active view
   const renderContent = () => {
     if (isLoading)
-      return <p className="text-gray-300 text-center">Loading...</p>;
-    if (error)
-      return <p className="text-red-400 text-center">Error: {error}</p>;
+      return <p className="text-orange-200 text-center">Loading...</p>;
+    if (error) return <p className="text-red-400 text-center">{error}</p>;
 
     switch (activeView) {
       case "questionBank":
         return (
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-3xl font-bold mb-6">
+            <h2 className="text-3xl font-bold mb-6 text-orange-100">
               Your Private Question Bank
             </h2>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -120,25 +136,27 @@ const HodDashboard = () => {
                   return (
                     <div
                       key={sec}
-                      className="bg-gray-700 p-4 rounded-lg text-center"
+                      className="bg-blue-900/40 p-4 rounded-lg text-center border border-blue-700"
                     >
-                      <p className="text-2xl font-bold text-blue-400">
+                      <p className="text-2xl font-bold text-orange-400">
                         {stat ? stat.count : 0}
                       </p>
-                      <p className="text-gray-400">{sec}</p>
+                      <p className="text-orange-200">{sec}</p>
                     </div>
                   );
                 }
               )}
             </div>
 
-            <div className="bg-gray-700 p-6 rounded-lg">
-              <h3 className="text-xl font-bold mb-4">Add New Questions</h3>
+            <div className="bg-blue-900/40 p-6 rounded-lg border border-blue-700">
+              <h3 className="text-xl font-bold mb-4 text-orange-100">
+                Add New Questions
+              </h3>
               <div className="flex items-center gap-4">
                 <select
                   value={questionCategory}
                   onChange={(e) => setQuestionCategory(e.target.value)}
-                  className="flex-grow bg-gray-800 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-grow bg-blue-800 border border-blue-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400 text-white"
                 >
                   <option value="Quantitative">Quantitative</option>
                   <option value="Reasoning">Reasoning</option>
@@ -148,38 +166,41 @@ const HodDashboard = () => {
                 <button
                   onClick={handleAddQuestions}
                   disabled={isGenerating}
-                  className="bg-green-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-green-700 transition disabled:opacity-50"
+                  className="bg-orange-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-orange-700 transition disabled:opacity-50"
                 >
                   {isGenerating ? "Generating..." : "Generate 10 Questions"}
                 </button>
               </div>
               {generationMessage && (
-                <p className="mt-4 text-sm text-green-400">
+                <p className="mt-4 text-sm text-orange-300">
                   {generationMessage}
                 </p>
               )}
             </div>
           </div>
         );
+
       case "classrooms":
       default:
         return classrooms.length === 0 ? (
-          <div className="text-center text-gray-300">
-            <p>You haven't created any classrooms yet.</p>
+          <div className="text-center text-orange-200">
+            You haven't created any classrooms yet.
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {classrooms.map((classroom) => (
               <div
                 key={classroom._id}
-                className="bg-gray-700 p-6 rounded-lg shadow-md flex flex-col"
+                className="bg-blue-900/40 p-6 rounded-lg shadow-md flex flex-col border border-blue-700"
               >
-                <h3 className="text-xl font-bold mb-2">{classroom.name}</h3>
-                <p className="text-gray-400 mb-4">Batch: {classroom.batch}</p>
-                <div className="mt-auto flex gap-2 pt-4 border-t border-gray-600">
+                <h3 className="text-xl font-bold mb-2 text-orange-100">
+                  {classroom.name}
+                </h3>
+                <p className="text-orange-200 mb-4">Batch: {classroom.batch}</p>
+                <div className="mt-auto flex gap-2 pt-4 border-t border-blue-700">
                   <Link
                     to={`/hod/classroom/${classroom._id}`}
-                    className="flex-1 bg-blue-600 text-white text-center py-2 rounded-lg hover:bg-blue-700 transition text-sm font-semibold"
+                    className="flex-1 bg-orange-600 text-white text-center py-2 rounded-lg hover:bg-orange-700 transition text-sm font-semibold"
                   >
                     View Details
                   </Link>
@@ -188,20 +209,8 @@ const HodDashboard = () => {
                       handleDeleteClassroom(classroom._id, classroom.name)
                     }
                     className="bg-red-600 text-white p-2 rounded-lg hover:bg-red-700 transition"
-                    title="Delete Classroom"
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
+                    Delete
                   </button>
                 </div>
               </div>
@@ -212,60 +221,71 @@ const HodDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6 flex gap-6">
-      <aside className="w-64 bg-gray-800 rounded-2xl p-6 shadow-xl flex flex-col">
-        <h2 className="text-2xl font-bold mb-8">HOD Panel</h2>
-        <nav className="flex flex-col gap-4">
-          <button
-            onClick={() => setActiveView("classrooms")}
-            className={`text-left px-4 py-2 rounded-lg font-semibold transition ${
-              activeView === "classrooms" ? "bg-blue-600" : "hover:bg-gray-700"
-            }`}
-          >
-            Classrooms
-          </button>
-          <button
-            onClick={() => setActiveView("questionBank")}
-            className={`text-left px-4 py-2 rounded-lg font-semibold transition ${
-              activeView === "questionBank"
-                ? "bg-blue-600"
-                : "hover:bg-gray-700"
-            }`}
-          >
-            Question Bank
-          </button>
-        </nav>
-        <div className="mt-auto">
-          <button
-            onClick={logoutAction}
-            className="w-full text-center bg-red-600 px-4 py-2 rounded-lg hover:bg-red-700 transition"
-          >
-            Logout
-          </button>
-        </div>
-      </aside>
+    <div className="relative min-h-screen overflow-hidden">
+      {/* Gradient Background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-700 via-blue-900 to-orange-700 animate-gradient-x"></div>
+      <div className="absolute inset-0 backdrop-blur-sm"></div>
 
-      <div className="flex-1 flex flex-col gap-6 h-full">
-        <header className="h-20 bg-gray-800 rounded-2xl shadow-md flex items-center justify-between px-6">
-          <div>
-            <h2 className="text-2xl font-bold">
-              Welcome, {user?.fullName || "HOD"}
-            </h2>
-            <p className="text-gray-400 text-sm">
-              Manage your classrooms and question banks.
-            </p>
+      <div className="relative z-10 flex gap-6 p-6 h-[calc(100vh-1rem)]">
+        {/* Sidebar */}
+        <aside
+          ref={sidebarRef}
+          className="w-64 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 shadow-2xl flex flex-col gap-4"
+        >
+          <h2 className="text-3xl font-extrabold text-orange-400 mb-6 drop-shadow-lg">
+            HOD Panel
+          </h2>
+          <nav className="flex flex-col gap-4">
+            {["classrooms", "questionBank"].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveView(tab)}
+                className={`text-left px-4 py-2 rounded-lg font-semibold transition-all border ${
+                  activeView === tab
+                    ? "bg-blue-600 border-orange-400 shadow-lg scale-105"
+                    : "bg-white/10 border-white/20 hover:bg-blue-500/40"
+                }`}
+              >
+                {tab === "classrooms" ? "Classrooms" : "Question Bank"}
+              </button>
+            ))}
+          </nav>
+          <div className="mt-auto">
+            <button
+              onClick={logoutAction}
+              className="w-full text-center bg-red-500 px-4 py-2 rounded-lg font-semibold hover:bg-red-600 transition-all shadow-md"
+            >
+              Logout
+            </button>
           </div>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700 transition"
+        </aside>
+
+        {/* Right Content */}
+        <div className="flex-1 flex flex-col gap-6 h-full">
+          <header
+            ref={headerRef}
+            className="h-16 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-lg flex items-center justify-between px-6"
           >
-            + Create Classroom
-          </button>
-        </header>
-        <main className="flex-1 bg-gray-800 rounded-2xl p-6 shadow-md overflow-y-auto">
-          {renderContent()}
-        </main>
+            <div className="text-2xl font-bold text-orange-300 drop-shadow-md">
+              Welcome, {user?.fullName || "HOD"}
+            </div>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="bg-orange-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-orange-700 transition"
+            >
+              + Create Classroom
+            </button>
+          </header>
+
+          <main
+            ref={contentRef}
+            className="flex-1 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 shadow-xl overflow-y-auto"
+          >
+            {renderContent()}
+          </main>
+        </div>
       </div>
+
       {isModalOpen && (
         <CreateClassroomModal
           onClose={() => setIsModalOpen(false)}

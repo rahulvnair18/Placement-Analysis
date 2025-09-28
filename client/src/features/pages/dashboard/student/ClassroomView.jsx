@@ -1,22 +1,16 @@
 import React, { useState, useEffect, useContext } from "react";
-import { useParams, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import AuthContext from "../../../../context/AuthContext";
 
 const ClassroomView = () => {
   const { token } = useContext(AuthContext);
 
-  // State for the form input
   const [joinCode, setJoinCode] = useState("");
-
-  // State to store the list of classrooms the student has joined
   const [joinedClassrooms, setJoinedClassrooms] = useState([]);
-
-  // State for UI feedback
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
-  const [message, setMessage] = useState(""); // For success/error messages from the join form
+  const [message, setMessage] = useState("");
 
-  // This function fetches the list of classrooms the student is already in
   const fetchMyClassrooms = async () => {
     setIsLoading(true);
     try {
@@ -36,14 +30,12 @@ const ClassroomView = () => {
     }
   };
 
-  // Fetch the classrooms when the component first loads
   useEffect(() => {
     if (token) {
       fetchMyClassrooms();
     }
   }, [token]);
 
-  // This function handles the "Join Classroom" form submission
   const handleJoinClassroom = async (e) => {
     e.preventDefault();
     setMessage("Joining...");
@@ -64,71 +56,88 @@ const ClassroomView = () => {
       const data = await response.json();
       if (!response.ok) throw new Error(data.message);
 
-      setMessage(data.message); // Show success message
-      setJoinCode(""); // Clear the input field
-      fetchMyClassrooms(); // Refresh the list to show the newly joined classroom
+      setMessage(data.message);
+      setJoinCode("");
+      fetchMyClassrooms();
     } catch (err) {
       setMessage(`Error: ${err.message}`);
     }
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-8">
-      {/* --- Join Classroom Form --- */}
-      <div className="bg-gray-800 p-6 rounded-lg shadow-md">
-        <h2 className="text-2xl font-bold mb-4">Join a New Classroom</h2>
-        <form
-          onSubmit={handleJoinClassroom}
-          className="flex items-center gap-4"
-        >
-          <input
-            type="text"
-            value={joinCode}
-            onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-            placeholder="Enter Join Code"
-            className="flex-grow bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <button
-            type="submit"
-            className="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700 transition"
-          >
-            Join
-          </button>
-        </form>
-        {message && <p className="mt-4 text-sm text-green-400">{message}</p>}
-      </div>
+    <div className="relative min-h-screen">
+      {/* Gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-700 via-blue-900 to-orange-700 animate-gradient-x"></div>
+      <div className="absolute inset-0 backdrop-blur-sm"></div>
 
-      {/* --- List of Joined Classrooms --- */}
-      <div className="bg-gray-800 p-6 rounded-lg shadow-md">
-        <h2 className="text-2xl font-bold mb-4">Your Classrooms</h2>
-        {isLoading && <p className="text-gray-400">Loading...</p>}
-        {error && <p className="text-red-500">{error}</p>}
-        {!isLoading && joinedClassrooms.length === 0 && (
-          <p className="text-gray-400">
-            You haven't joined any classrooms yet.
-          </p>
-        )}
-        <div className="space-y-4">
-          {joinedClassrooms.map((classroom) => (
-            <div
-              key={classroom._id}
-              className="bg-gray-700 p-4 rounded-lg flex justify-between items-center"
+      {/* Content */}
+      <div className="relative z-10 w-full max-w-5xl mx-auto p-8 space-y-10">
+        {/* Join Classroom Form */}
+        <div className="bg-white/10 backdrop-blur-lg p-8 rounded-2xl shadow-xl border border-white/20">
+          <h2 className="text-3xl font-bold text-white mb-6">
+            Join a New Classroom
+          </h2>
+          <form
+            onSubmit={handleJoinClassroom}
+            className="flex flex-col sm:flex-row gap-4"
+          >
+            <input
+              type="text"
+              value={joinCode}
+              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+              placeholder="Enter Join Code"
+              className="flex-grow bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-orange-400 placeholder-gray-300"
+            />
+            <button
+              type="submit"
+              className="bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 hover:scale-105 transition-all shadow-lg"
             >
-              <div>
-                <p className="font-bold text-lg">{classroom.name}</p>
-                <p className="text-sm text-gray-400">
-                  HOD: {classroom.hodId?.fullName || "N/A"}
-                </p>
-              </div>
-              {/* --- THE CHANGE: Add a "View" button --- */}
-              <Link
-                to={`/student/classroom/${classroom._id}`}
-                className="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition text-sm"
+              Join
+            </button>
+          </form>
+          {message && (
+            <p className="mt-4 text-sm text-green-400 font-medium">{message}</p>
+          )}
+        </div>
+
+        {/* Classrooms List */}
+        <div className="bg-white/10 backdrop-blur-lg p-8 rounded-2xl shadow-xl border border-white/20">
+          <h2 className="text-3xl font-bold text-white mb-6">
+            Your Classrooms
+          </h2>
+          {isLoading && <p className="text-gray-300">Loading...</p>}
+          {error && <p className="text-red-400">{error}</p>}
+          {!isLoading && joinedClassrooms.length === 0 && (
+            <p className="text-gray-300">
+              You haven’t joined any classrooms yet.
+            </p>
+          )}
+
+          <div className="space-y-4">
+            {joinedClassrooms.map((classroom, idx) => (
+              <div
+                key={classroom._id}
+                className={`p-6 rounded-xl flex justify-between items-center border transition-all shadow-md
+                  ${idx % 2 === 0 ? "bg-white/10" : "bg-white/5"}
+                  hover:bg-orange-500/20 hover:scale-[1.02]`}
               >
-                View
-              </Link>
-            </div>
-          ))}
+                <div>
+                  <p className="font-bold text-xl text-white">
+                    {classroom.name}
+                  </p>
+                  <p className="text-sm text-gray-300">
+                    HOD: {classroom.hodId?.fullName || "N/A"}
+                  </p>
+                </div>
+                <Link
+                  to={`/student/classroom/${classroom._id}`}
+                  className="bg-blue-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-blue-700 hover:scale-105 transition-all shadow-md text-sm"
+                >
+                  View
+                </Link>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

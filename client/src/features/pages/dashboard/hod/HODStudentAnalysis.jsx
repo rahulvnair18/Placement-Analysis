@@ -48,72 +48,94 @@ const HODStudentAnalysis = () => {
 
   if (isLoading)
     return (
-      <div className="min-h-screen bg-gray-900 flex justify-center items-center text-white">
-        Loading...
-      </div>
-    );
-  if (error)
-    return (
-      <div className="min-h-screen bg-gray-900 flex justify-center items-center text-red-500">
-        Error: {error}
-      </div>
-    );
-  if (!resultData)
-    return (
-      <div className="min-h-screen bg-gray-900 flex justify-center items-center text-white">
-        No data.
+      <div className="min-h-screen bg-gradient-to-br from-blue-700 via-blue-900 to-orange-700 flex justify-center items-center text-white text-xl font-semibold">
+        Loading Analysis...
       </div>
     );
 
-  // --- THIS IS THE MISSING UI CODE ---
+  if (error)
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-700 via-blue-900 to-orange-700 flex justify-center items-center text-red-300 text-xl font-semibold">
+        Error: {error}
+      </div>
+    );
+
+  if (!resultData)
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-700 via-blue-900 to-orange-700 flex justify-center items-center text-white text-xl font-semibold">
+        No result data found for this student.
+      </div>
+    );
+
   const barChartData = Object.keys(resultData.sectionScores).map((section) => ({
     name: section,
     score: resultData.sectionScores[section],
   }));
 
+  // Updated darker card style
+  const cardStyle =
+    "bg-black/20 backdrop-blur-lg border border-white/20 rounded-2xl p-6 shadow-xl";
+  const mainContainerStyle =
+    "bg-black/10 backdrop-blur-lg border border-white/20 rounded-2xl p-8 shadow-xl space-y-8";
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-white p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-4xl font-bold">Student Result Analysis</h1>
+    <div className="relative min-h-screen text-white">
+      {/* Background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-700 via-blue-900 to-orange-700"></div>
+      <div className="absolute inset-0 backdrop-blur-sm"></div>
+
+      {/* Content */}
+      <div className="relative z-10 max-w-7xl mx-auto p-8">
+        <header className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
           <div>
-            <Link
-              to={`/hod/test-analysis/${scheduledTestId}`}
-              className="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700 transition"
-            >
-              Back to Test Summary
-            </Link>
+            <h1 className="text-4xl font-bold drop-shadow-lg text-center sm:text-left">
+              Student Analysis
+            </h1>
+            <p className="text-white/80 text-lg mt-1 text-center sm:text-left">
+              {resultData.studentName}
+            </p>
           </div>
-        </div>
-        <div className="bg-gray-800 p-8 rounded-lg">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            <div className="bg-gray-700 p-6 rounded-xl">
+          <Link
+            to={`/hod/test-analysis/${scheduledTestId}`}
+            className="bg-white/10 border border-white/20 px-5 py-2.5 rounded-lg font-medium hover:bg-white/20 transition shadow-md"
+          >
+            ← Back to Test Summary
+          </Link>
+        </header>
+
+        <div className={mainContainerStyle}>
+          {/* Top Section with Summary and Chart */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Performance Summary Card */}
+            <div className={cardStyle}>
               <h2 className="text-2xl font-bold mb-4">Performance Summary</h2>
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gray-800 p-4 rounded-lg text-center">
+                <div className="bg-black/20 p-4 rounded-lg text-center">
                   <p className="text-5xl font-bold text-green-400">
                     {resultData.score}
                   </p>
-                  <p className="text-gray-400">Correct</p>
+                  <p className="text-gray-300">Correct</p>
                 </div>
-                <div className="bg-gray-800 p-4 rounded-lg text-center">
+                <div className="bg-black/20 p-4 rounded-lg text-center">
                   <p className="text-5xl font-bold text-red-400">
                     {resultData.totalMarks - resultData.score}
                   </p>
-                  <p className="text-gray-400">Incorrect</p>
+                  <p className="text-gray-300">Incorrect</p>
                 </div>
-                <div className="bg-gray-800 p-4 rounded-lg text-center col-span-2">
+                <div className="bg-black/20 p-4 rounded-lg text-center col-span-2">
                   <p className="text-5xl font-bold">
                     {((resultData.score / resultData.totalMarks) * 100).toFixed(
                       1
                     )}
                     %
                   </p>
-                  <p className="text-gray-400">Overall Score</p>
+                  <p className="text-gray-300">Overall Score</p>
                 </div>
               </div>
             </div>
-            <div className="bg-gray-700 p-6 rounded-xl">
+
+            {/* Section-wise Score Card */}
+            <div className={cardStyle}>
               <h2 className="text-2xl font-bold mb-4 text-center">
                 Section-wise Score
               </h2>
@@ -123,7 +145,10 @@ const HODStudentAnalysis = () => {
                   layout="vertical"
                   margin={{ top: 5, right: 20, left: 30, bottom: 5 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#4A5568" />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="rgba(255, 255, 255, 0.1)"
+                  />
                   <XAxis type="number" domain={[0, 10]} hide />
                   <YAxis
                     type="category"
@@ -132,27 +157,33 @@ const HODStudentAnalysis = () => {
                     stroke="#A0AEC0"
                   />
                   <Tooltip
-                    cursor={{ fill: "#2D3748" }}
-                    contentStyle={{ backgroundColor: "#1A202C" }}
+                    cursor={{ fill: "rgba(255, 255, 255, 0.05)" }}
+                    contentStyle={{
+                      backgroundColor: "rgba(20, 20, 20, 0.8)",
+                      borderColor: "rgba(255,255,255,0.2)",
+                      borderRadius: "0.75rem",
+                    }}
                   />
                   <Bar
                     dataKey="score"
                     fill="#3B82F6"
-                    background={{ fill: "#4A5568" }}
+                    background={{ fill: "rgba(255, 255, 255, 0.05)" }}
                   />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
+
+          {/* Detailed Question Review Section */}
           <div>
             <h2 className="text-3xl font-bold mb-6">
               Detailed Question Review
             </h2>
             <div className="space-y-4">
               {resultData.analysis.map((item, index) => (
-                <div key={item._id} className="bg-gray-700 p-6 rounded-lg">
-                  <p className="font-semibold text-lg mb-3">
-                    <span className="bg-blue-600 text-white rounded-full px-3 py-1 mr-3">
+                <div key={item._id} className={cardStyle}>
+                  <p className="font-semibold text-lg mb-3 flex items-start">
+                    <span className="bg-blue-600 text-white rounded-full h-8 w-8 flex items-center justify-center mr-4 flex-shrink-0">
                       {index + 1}
                     </span>
                     {item.questionText}
@@ -161,13 +192,14 @@ const HODStudentAnalysis = () => {
                     {item.options.map((option) => {
                       const isCorrect = option === item.correctAnswer;
                       const isStudentAnswer = option === item.studentAnswer;
-                      let optionClass = "border-gray-600";
+                      let optionClass = "border-white/20";
                       if (isCorrect)
                         optionClass =
-                          "border-green-500 bg-green-900/50 text-green-300";
+                          "border-green-400 bg-green-500/20 text-green-300";
                       if (isStudentAnswer && !item.isCorrect)
                         optionClass =
-                          "border-red-500 bg-red-900/50 text-red-300 line-through";
+                          "border-red-400 bg-red-500/20 text-red-300 line-through";
+
                       return (
                         <div
                           key={option}
@@ -184,7 +216,7 @@ const HODStudentAnalysis = () => {
                         Correct Answer: {item.correctAnswer}
                       </p>
                     )}
-                  <div className="bg-gray-900/50 p-4 rounded-lg pl-12">
+                  <div className="bg-black/20 p-4 rounded-lg pl-12">
                     <p className="font-bold text-blue-300">Explanation:</p>
                     <p className="text-gray-300">{item.explanation}</p>
                   </div>
