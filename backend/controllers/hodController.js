@@ -11,15 +11,35 @@ const createClassroom = async (req, res) => {
   try {
     const { name, batch } = req.body;
     const hodId = req.user._id;
+
     if (!name || !batch) {
       return res
         .status(400)
         .json({ message: "Classroom name and batch are required." });
     }
+
+    // --- THIS IS THE UPGRADED VALIDATION LOGIC ---
+    // It now checks if a classroom exists where EITHER the name OR the batch is the same.
+    const existingClassroom = await Classroom.findOne({
+      hodId: hodId,
+      $or: [{ name: name }, { batch: batch }],
+    });
+
+    // If a duplicate is found, send a specific error message.
+    if (existingClassroom) {
+      // Check which field was the duplicate to give a better error message
+      const duplicateField = existingClassroom.name === name ? "name" : "batch";
+      return res.status(409).json({
+        message: `A classroom with this ${duplicateField} already exists.`,
+      });
+    }
+    // --- END OF UPGRADED LOGIC ---
+
     const randomString = crypto.randomBytes(3).toString("hex").toUpperCase();
     const joinCode = `C-${randomString}`;
     const newClassroom = new Classroom({ name, batch, hodId, joinCode });
     await newClassroom.save();
+
     res.status(201).json({
       message: "Classroom created successfully!",
       classroom: newClassroom,
@@ -297,11 +317,9 @@ const getTestAnalysisForHOD = async (req, res) => {
     // 1. Security Check (Unchanged)
     const scheduledTest = await ScheduledTest.findById(scheduledTestId);
     if (!scheduledTest || scheduledTest.hodId.toString() !== hodId.toString()) {
-      return res
-        .status(404)
-        .json({
-          message: "Scheduled test not found or you are not authorized.",
-        });
+      return res.status(404).json({
+        message: "Scheduled test not found or you are not authorized.",
+      });
     }
 
     // 2. Get the full student roster (Populate _id as well)
@@ -439,7 +457,41 @@ const getStudentResultForHOD = async (req, res) => {
     res.status(500).json({ message: "Server error fetching student result." });
   }
 };
+const removeHodQuestions = async (req, res) => {
+  const { section } = req.body; // section is optional
+  const hodId = req.user._id;
+
+  try {
+    // Base filter always ensures HOD can only delete their own questions
+    const filter = { hodId: hodId };
+
+    // If a specific section is provided, add it to the filter
+    if (section) {
+      filter.section = section;
+    }
+
+    // Use deleteMany to remove all documents matching the filter
+    const result = await HodQuestion.deleteMany(filter);
+
+    if (result.deletedCount === 0) {
+      return res
+        .status(404)
+        .json({ message: "No matching questions found to delete." });
+    }
+
+    const message = section
+      ? `Successfully deleted ${result.deletedCount} questions from the ${section} section.`
+      : `Successfully deleted all ${result.deletedCount} questions from your bank.`;
+
+    res.status(200).json({ message });
+  } catch (error) {
+    console.error("Error removing HOD questions:", error);
+    res.status(500).json({ message: "Server error while removing questions." });
+  }
+};
+
 module.exports = {
+  removeHodQuestions,
   getStudentResultForHOD,
   getTestAnalysisForHOD,
   getHodQuestionStats,

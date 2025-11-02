@@ -130,7 +130,7 @@ const ClassroomDetails = () => {
         return (
           <>
             <h2 className="text-2xl font-bold mb-4 text-orange-300">
-              Student Roster ({classroom?.students?.length || 0})
+              Students ({classroom?.students?.length || 0})
             </h2>
             {classroom?.students?.length > 0 ? (
               <div className="overflow-x-auto rounded-2xl shadow-lg backdrop-blur-md bg-white/10 border border-white/20">

@@ -23,10 +23,7 @@ const scheduledTestResultSchema = new mongoose.Schema(
     answers: {
       type: Object,
       required: true,
-    },
-    // --- THIS IS THE NEW FIELD ---
-    // It will store the reason if the test was auto-submitted.
-    // e.g., "Tab Switched"
+    }, // --- THIS IS THE NEW FIELD --- // It will store the reason if the test was auto-submitted. // e.g., "Tab Switched"
     malpracticeReason: {
       type: String,
       default: null, // Defaults to null if it was a normal submission

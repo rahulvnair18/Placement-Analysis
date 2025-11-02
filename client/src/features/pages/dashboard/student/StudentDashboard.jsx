@@ -67,7 +67,7 @@ const StudentDashboard = () => {
               <button
                 key={tab}
                 onClick={() => setActiveContent(tab)}
-                className={`text-left px-4 py-2 rounded-lg font-semibold transition-all border ${
+                className={`text-left px-4 py-2 rounded-lg font-semibold transition-all border text-white ${
                   activeContent === tab
                     ? "bg-blue-600 border-orange-400 shadow-lg scale-105"
                     : "bg-white/10 border-white/20 hover:bg-blue-500/40"

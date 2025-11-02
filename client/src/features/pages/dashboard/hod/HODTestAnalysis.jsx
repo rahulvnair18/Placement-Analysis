@@ -123,9 +123,6 @@ const HODTestAnalysis = () => {
                     <th className="py-3 px-4 font-semibold">Student Name</th>
                     <th className="py-3 px-4 font-semibold">Score</th>
                     <th className="py-3 px-4 font-semibold">Reason</th>
-                    <th className="py-3 px-4 font-semibold text-right">
-                      Actions
-                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/10">
@@ -140,14 +137,6 @@ const HODTestAnalysis = () => {
                       </td>
                       <td className="py-3 px-4 font-medium text-red-300">
                         {student.reason}
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <Link
-                          to={`/hod/student-analysis/${scheduledTestId}/${student.studentId}`}
-                          className="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition-all shadow-md text-sm"
-                        >
-                          View
-                        </Link>
                       </td>
                     </tr>
                   ))}

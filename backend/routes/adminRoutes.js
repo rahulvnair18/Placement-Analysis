@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const {
+  removeAdminQuestions,
+  getQuestionBankStats,
   getAllStudents,
   getAllHods,
   getAllClassrooms,
@@ -16,4 +18,6 @@ router.get("/students", adminProtect, getAllStudents);
 router.get("/hods", adminProtect, getAllHods);
 router.get("/classrooms", adminProtect, getAllClassrooms);
 router.post("/questions/add", adminProtect, addQuestionsToBank);
+router.get("/questions/stats", adminProtect, getQuestionBankStats);
+router.delete("/questions", adminProtect, removeAdminQuestions);
 module.exports = router;

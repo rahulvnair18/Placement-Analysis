@@ -116,7 +116,34 @@ const HodDashboard = () => {
       alert(`Error: ${err.message}`);
     }
   };
+  // --- THIS IS THE NEW FUNCTION FOR DELETING QUESTIONS ---
+  const handleRemoveQuestions = async (section = null) => {
+    const confirmMessage = section
+      ? `Are you sure you want to delete all questions from the ${section} section?`
+      : "Are you sure you want to delete ALL questions from your bank? This action cannot be undone.";
 
+    if (!window.confirm(confirmMessage)) return;
+
+    try {
+      const response = await fetch("http://localhost:5000/api/hod/questions", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        // If a section is provided, send it in the body
+        body: section ? JSON.stringify({ section }) : JSON.stringify({}),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message);
+
+      alert(data.message); // Show success message
+      fetchData(); // Refresh the stats
+    } catch (err) {
+      alert(`Error: ${err.message}`);
+    }
+  };
   const renderContent = () => {
     if (isLoading)
       return <p className="text-orange-200 text-center">Loading...</p>;
@@ -136,12 +163,22 @@ const HodDashboard = () => {
                   return (
                     <div
                       key={sec}
-                      className="bg-blue-900/40 p-4 rounded-lg text-center border border-blue-700"
+                      className="bg-blue-900/40 p-4 rounded-lg text-center border border-blue-700 flex flex-col justify-between"
                     >
-                      <p className="text-2xl font-bold text-orange-400">
-                        {stat ? stat.count : 0}
-                      </p>
-                      <p className="text-orange-200">{sec}</p>
+                      <div>
+                        <p className="text-2xl font-bold text-orange-400">
+                          {stat ? stat.count : 0}
+                        </p>
+                        <p className="text-orange-200">{sec}</p>
+                      </div>
+                      {/* --- THE NEW DELETE BUTTON --- */}
+                      <button
+                        onClick={() => handleRemoveQuestions(sec)}
+                        className="text-xs text-red-400 hover:text-red-300 hover:bg-red-900/50 rounded mt-3 py-1 transition"
+                        title={`Delete all ${sec} questions`}
+                      >
+                        Delete Section
+                      </button>
                     </div>
                   );
                 }
@@ -176,6 +213,18 @@ const HodDashboard = () => {
                   {generationMessage}
                 </p>
               )}
+            </div>
+            {/* --- NEW "DELETE ALL" SECTION --- */}
+            <div className="mt-8 bg-red-900/40 p-6 rounded-lg border border-red-700 text-center">
+              <p className="text-red-200 mb-4">
+                Permanently remove all questions from your question bank.
+              </p>
+              <button
+                onClick={() => handleRemoveQuestions()} // No section passed to delete all
+                className="bg-red-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-red-700 transition"
+              >
+                Delete All My Questions
+              </button>
             </div>
           </div>
         );

@@ -4,8 +4,12 @@ const bcrypt = require("bcryptjs"); // We need this for hashing
 const userSchema = new mongoose.Schema({
   fullName: { type: String, required: true },
   role: { type: String, enum: ["Student", "HOD"], required: true },
-  rollNo: { type: String },
-  regId: { type: String, required: true, unique: true },
+  rollNo: { type: String, unique: true, sparse: true },
+  regId: {
+    type: String,
+    required: true,
+    unique: true,
+  },
   batch: { type: String },
   password: { type: String, required: true },
 });

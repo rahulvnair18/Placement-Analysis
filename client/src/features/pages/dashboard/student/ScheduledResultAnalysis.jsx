@@ -70,11 +70,13 @@ const ScheduledResultAnalysis = () => {
       </div>
     );
 
-  const barChartData = Object.keys(resultData.sectionScores).map((section) => ({
-    name: section,
-    score: resultData.sectionScores[section],
-    total: resultData.sectionTotals[section],
-  }));
+  const barChartData = Object.keys(resultData.sectionScores || {}).map(
+    (section) => ({
+      name: section,
+      score: resultData.sectionScores[section],
+      total: resultData.sectionTotals[section],
+    })
+  );
 
   // Consistent styling constants
   const cardStyle =

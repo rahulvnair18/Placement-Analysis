@@ -14,6 +14,7 @@ const Register = () => {
   });
 
   const [errors, setErrors] = useState({});
+  const [serverMessage, setServerMessage] = useState({ type: "", message: "" });
   const navigate = useNavigate();
 
   // Refs for animations
@@ -50,37 +51,45 @@ const Register = () => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      // Auto-uppercase regId and rollNo for consistency
+      [name]:
+        name === "regId" || name === "rollNo" ? value.toUpperCase() : value,
     }));
   };
-
   const validateForm = () => {
     const newErrors = {};
     if (!formData.fullName.trim())
       newErrors.fullName = "Full Name is required.";
-    if (!formData.password.trim()) newErrors.password = "Password is required.";
-    if (!formData.confirmPassword.trim())
-      newErrors.confirmPassword = "Confirm Password is required.";
+    if (!formData.password) newErrors.password = "Password is required.";
     if (formData.password !== formData.confirmPassword)
       newErrors.confirmPassword = "Passwords do not match.";
-    if (formData.role === "Student" || formData.role === "HOD") {
-      if (!formData.regId.trim()) {
-        newErrors.regId = "Registration ID is required.";
-      }
-    }
+
     if (formData.role === "Student") {
       if (!formData.rollNo.trim()) newErrors.rollNo = "Roll No is required.";
-      else if (!/^\d{2}MCA\d{2}$/.test(formData.rollNo))
-        newErrors.rollNo = "Invalid Roll No format (e.g., 24MCA01)";
+
+      // Validation for regId format
+      const regIdRegex = /^TKM\d{2}MCA\d{4}$/;
+      if (!formData.regId.trim())
+        newErrors.regId = "Registration ID is required.";
+      else if (!regIdRegex.test(formData.regId))
+        newErrors.regId = "Format must be TKMXXMCAXXXX.";
+
+      // Validation for batch format
+      const batchRegex = /^\d{4}-\d{4}$/;
       if (!formData.batch.trim()) newErrors.batch = "Batch is required.";
+      else if (!batchRegex.test(formData.batch))
+        newErrors.batch = "Format must be XXXX-XXXX.";
+    } else if (formData.role === "HOD") {
+      if (!formData.regId.trim())
+        newErrors.regId = "Registration ID is required.";
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setServerMessage({ type: "", message: "" }); // Clear previous server messages
     if (validateForm()) {
       try {
         const response = await fetch(
@@ -95,23 +104,20 @@ const Register = () => {
         const data = await response.json();
 
         if (!response.ok) {
-          alert(data.message);
+          setServerMessage({ type: "error", message: data.message });
         } else {
-          alert(data.message); // success
-          setFormData({
-            fullName: "",
-            role: "Student",
-            rollNo: "",
-            regId: "",
-            batch: "",
-            password: "",
-            confirmPassword: "",
-          });
-          navigate("/login");
+          setServerMessage({ type: "success", message: data.message });
+          // Wait 2 seconds before redirecting to show success message
+          setTimeout(() => {
+            navigate("/login");
+          }, 2000);
         }
       } catch (err) {
         console.error("Error submitting form:", err);
-        alert("Something went wrong.");
+        setServerMessage({
+          type: "error",
+          message: "Something went wrong. Please try again.",
+        });
       }
     }
   };
@@ -166,7 +172,7 @@ const Register = () => {
             {formData.role === "Student" && (
               <>
                 <div>
-                  <label className="block mb-1">Roll No (e.g., 24MCA01)</label>
+                  <label className="block mb-1">Roll No (e.g., XXMCAXX)</label>
                   <input
                     type="text"
                     name="rollNo"
@@ -256,7 +262,18 @@ const Register = () => {
             </div>
           </div>
         </div>
-
+        {/* --- NEW: Display Server Messages --- */}
+        {serverMessage.message && (
+          <div
+            className={`mt-4 text-center p-2 rounded-md ${
+              serverMessage.type === "error"
+                ? "bg-red-500/50"
+                : "bg-green-500/50"
+            }`}
+          >
+            {serverMessage.message}
+          </div>
+        )}
         <div className="mt-8">
           <button
             type="submit"

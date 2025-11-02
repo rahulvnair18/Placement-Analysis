@@ -3,13 +3,13 @@ import AuthContext from "../../../../context/AuthContext";
 
 const AdminDashboard = () => {
   // --- STATE MANAGEMENT (Unchanged) ---
-  const [activeView, setActiveView] = useState("students");
+  const [activeView, setActiveView] = useState("questionStats");
   const [students, setStudents] = useState([]);
   const [hods, setHods] = useState([]);
   const [classrooms, setClassrooms] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-
+  const [questionStats, setQuestionStats] = useState([]);
   const [questionCategory, setQuestionCategory] = useState("Quantitative");
   const [questionCount, setQuestionCount] = useState(10);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -29,23 +29,34 @@ const AdminDashboard = () => {
       setError(null);
       try {
         const headers = { Authorization: `Bearer ${token}` };
-        const [studentsRes, hodsRes, classroomsRes] = await Promise.all([
-          fetch("http://localhost:5000/api/admin/students", { headers }),
-          fetch("http://localhost:5000/api/admin/hods", { headers }),
-          fetch("http://localhost:5000/api/admin/classrooms", { headers }),
-        ]);
+        const [studentsRes, hodsRes, classroomsRes, statsRes] =
+          await Promise.all([
+            fetch("http://localhost:5000/api/admin/students", { headers }),
+            fetch("http://localhost:5000/api/admin/hods", { headers }),
+            fetch("http://localhost:5000/api/admin/classrooms", { headers }),
+            fetch("http://localhost:5000/api/admin/questions/stats", {
+              headers,
+            }), // <-- Fetch stats
+          ]);
 
-        if (!studentsRes.ok || !hodsRes.ok || !classroomsRes.ok) {
+        if (
+          !studentsRes.ok ||
+          !hodsRes.ok ||
+          !classroomsRes.ok ||
+          !statsRes.ok
+        ) {
           throw new Error("Failed to fetch some of the required data.");
         }
 
         const studentsData = await studentsRes.json();
         const hodsData = await hodsRes.json();
         const classroomsData = await classroomsRes.json();
+        const statsData = await statsRes.json();
 
         setStudents(studentsData);
         setHods(hodsData);
         setClassrooms(classroomsData);
+        setQuestionStats(statsData);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -74,7 +85,36 @@ const AdminDashboard = () => {
       );
     });
   }, [token]);
+  const handleRemoveAdminQuestions = async (section = null) => {
+    const confirmMessage = section
+      ? `Are you sure you want to delete all questions from the ${section} section?`
+      : "Are you sure you want to delete ALL questions from the global bank? This action cannot be undone.";
 
+    if (!window.confirm(confirmMessage)) return;
+
+    try {
+      const response = await fetch(
+        "http://localhost:5000/api/admin/questions",
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: section ? JSON.stringify({ section }) : JSON.stringify({}),
+        }
+      );
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message);
+
+      alert(data.message); // Show success message
+      // This is a simple way to refresh the data after deletion
+      window.location.reload();
+    } catch (err) {
+      alert(`Error: ${err.message}`);
+    }
+  };
   // --- ACTION HANDLERS (Unchanged) ---
   const handleAddQuestions = async () => {
     setIsGenerating(true);
@@ -124,6 +164,68 @@ const AdminDashboard = () => {
     const tableTitleClass = "text-2xl font-bold text-orange-300 mb-4";
 
     switch (activeView) {
+      case "questionStats":
+        const totalQuestions = questionStats.reduce(
+          (acc, curr) => acc + curr.count,
+          0
+        );
+        return (
+          <div>
+            <div className="bg-black/20 p-6 rounded-xl flex items-center justify-between mb-8">
+              <div>
+                <p className="text-gray-300">Total Questions in Bank</p>
+                <p className="text-4xl font-bold text-orange-300">
+                  {totalQuestions}
+                </p>
+              </div>
+            </div>
+
+            <h3 className="text-2xl font-bold text-orange-300 mb-4">
+              Questions by Section
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {questionStats.map((stat) => (
+                // --- THE STAT CARD IS NOW A FLEX COLUMN ---
+                <div
+                  key={stat._id}
+                  className="bg-black/20 p-6 rounded-xl text-center flex flex-col justify-between"
+                >
+                  <div>
+                    <p className="text-3xl font-bold text-blue-400">
+                      {stat.count}
+                    </p>
+                    <p className="text-gray-300 mt-1">{stat._id}</p>
+                  </div>
+                  {/* --- THE NEW DELETE BUTTON --- */}
+                  <button
+                    onClick={() => handleRemoveAdminQuestions(stat._id)}
+                    className="text-xs text-red-400 hover:text-red-300 hover:bg-red-900/50 rounded mt-4 py-1 transition-colors"
+                    title={`Delete all ${stat._id} questions`}
+                  >
+                    Delete Section
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* --- NEW "DELETE ALL" SECTION --- */}
+            <div className="mt-8 bg-red-900/40 p-6 rounded-lg border border-red-700 text-center">
+              <h3 className="text-xl font-bold text-red-300 mb-2">
+                Danger Zone
+              </h3>
+              <p className="text-red-200 mb-4">
+                Permanently remove all questions from the global question bank.
+              </p>
+              <button
+                onClick={() => handleRemoveAdminQuestions()} // No section passed to delete all
+                className="bg-red-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-red-700 transition"
+              >
+                Delete All Questions
+              </button>
+            </div>
+          </div>
+        );
+
       case "students":
         return (
           <div className="overflow-x-auto">
@@ -185,7 +287,6 @@ const AdminDashboard = () => {
                 <tr className="border-b border-white/20">
                   <th className={thClass}>Classroom Name</th>
                   <th className={thClass}>HOD</th>
-                  <th className={thClass}>Student Count</th>
                 </tr>
               </thead>
               <tbody>
@@ -193,7 +294,6 @@ const AdminDashboard = () => {
                   <tr key={c._id} className={trClass}>
                     <td className={tdClass}>{c.name}</td>
                     <td className={tdClass}>{c.hodId?.fullName || "N/A"}</td>
-                    <td className={tdClass}>{c.students.length}</td>
                   </tr>
                 ))}
               </tbody>
@@ -224,7 +324,7 @@ const AdminDashboard = () => {
             Admin Panel
           </h2>
           <nav className="flex flex-col gap-4">
-            {["students", "hods", "classrooms"].map((view) => (
+            {["questionStats", "students", "hods", "classrooms"].map((view) => (
               <button
                 key={view}
                 onClick={() => setActiveView(view)}
@@ -234,7 +334,10 @@ const AdminDashboard = () => {
                     : "bg-white/10 border-transparent hover:bg-white/20"
                 }`}
               >
-                {view.charAt(0).toUpperCase() + view.slice(1)}
+                {/* Simple text formatting */}
+                {view === "questionStats"
+                  ? "Question Stats"
+                  : view.charAt(0).toUpperCase() + view.slice(1)}
               </button>
             ))}
           </nav>

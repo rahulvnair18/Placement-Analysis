@@ -69,14 +69,6 @@ const Instruction = () => {
             <strong className="text-orange-400">auto-submitted</strong> after
             the total time of 20 minutes has elapsed.
           </p>
-          <p>
-            5. Any attempt at malpractice (e.g., leaving the browser window)
-            will result in the test being{" "}
-            <strong className="text-orange-400">
-              immediately auto-submitted
-            </strong>
-            .
-          </p>
           <p>6. You cannot return to a previous section.</p>
         </div>
 

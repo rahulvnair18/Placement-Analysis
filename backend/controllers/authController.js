@@ -21,13 +21,40 @@ const registerUser = async (req, res) => {
     if (password !== confirmPassword) {
       return res.status(400).json({ message: "Passwords do not match" });
     }
+    // --- NEW: ROLE-BASED VALIDATION FOR REGISTRATION ID ---
+    if (role === "Student") {
+      const regIdRegex = /^TKM\d{2}MCA\d{4}$/;
+      if (!regIdRegex.test(regId)) {
+        return res.status(400).json({
+          message:
+            "Invalid Registration ID format. Expected format: TKMXXMCAXXXX (e.g., TKM24MCA2048)",
+        });
+      }
+    }
+    // --- END OF NEW LOGIC ---
+    const batchRegex = /^\d{4}-\d{4}$/;
+    if (!batchRegex.test(batch)) {
+      return res.status(400).json({
+        message: "Invalid Batch format. Expected: XXXX-XXXX (e.g., 2024-2026)",
+      });
+    }
     const existingUser = await User.findOne({ regId });
     if (existingUser) {
       return res
         .status(409)
         .json({ message: "User with this Registration ID already exists" });
     }
-
+    // --- NEW VALIDATION FOR ROLL NUMBER ---
+    // If the user is a student, check if their roll number already exists.
+    if (role === "Student" && rollNo) {
+      const existingUserByRollNo = await User.findOne({ rollNo });
+      if (existingUserByRollNo) {
+        return res
+          .status(409)
+          .json({ message: "A user with this Roll Number already exists." });
+      }
+    }
+    // --- END OF NEW LOGIC ---
     // We create the user here. The 'pre("save")' function in user.js will
     // automatically handle hashing the password before it hits the database.
     const newUser = new User({
@@ -41,6 +68,9 @@ const registerUser = async (req, res) => {
     await newUser.save();
     res.status(201).json({ message: "User registered successfully" });
   } catch (err) {
+    if (err.message) {
+      return res.status(400).json({ message: err.message });
+    }
     console.error(err);
     res.status(500).json({ message: "Server error during registration" });
   }

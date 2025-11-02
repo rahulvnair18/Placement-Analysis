@@ -34,7 +34,20 @@ const getAllClassrooms = async (req, res) => {
     res.status(500).json({ message: "Server error fetching classrooms." });
   }
 };
-
+const getQuestionBankStats = async (req, res) => {
+  try {
+    const stats = await Question.aggregate([
+      // Group all questions by their "section" field
+      { $group: { _id: "$section", count: { $sum: 1 } } },
+      // Sort the results by section name
+      { $sort: { _id: 1 } },
+    ]);
+    res.status(200).json(stats);
+  } catch (error) {
+    console.error("Error fetching question bank stats:", error);
+    res.status(500).json({ message: "Server error fetching stats." });
+  }
+};
 // --- The upgraded question generation logic (now it can find genAI) ---
 const addQuestionsToBank = async (req, res) => {
   const { category, count } = req.body;
@@ -79,8 +92,40 @@ const addQuestionsToBank = async (req, res) => {
       .json({ message: `Error adding questions: ${error.message}` });
   }
 };
+const removeAdminQuestions = async (req, res) => {
+  const { section } = req.body; // section is optional
 
+  try {
+    // Base filter is an empty object to match all questions
+    const filter = {};
+
+    // If a specific section is provided, add it to the filter
+    if (section) {
+      filter.section = section;
+    }
+
+    // Use deleteMany to remove all documents from the main Question model matching the filter
+    const result = await Question.deleteMany(filter);
+
+    if (result.deletedCount === 0) {
+      return res
+        .status(404)
+        .json({ message: "No matching questions found to delete." });
+    }
+
+    const message = section
+      ? `Successfully deleted ${result.deletedCount} questions from the ${section} section.`
+      : `Successfully deleted all ${result.deletedCount} questions from the global bank.`;
+
+    res.status(200).json({ message });
+  } catch (error) {
+    console.error("Error removing admin questions:", error);
+    res.status(500).json({ message: "Server error while removing questions." });
+  }
+};
 module.exports = {
+  removeAdminQuestions,
+  getQuestionBankStats,
   getAllStudents,
   getAllHods,
   getAllClassrooms,

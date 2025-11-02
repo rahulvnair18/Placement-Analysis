@@ -14,11 +14,7 @@ const resultSchema = new mongoose.Schema(
     totalMarks: {
       type: Number,
       required: true,
-    },
-    // --- THE FIX ---
-    // We are changing the type from 'Map' to a generic 'Object'.
-    // This perfectly matches the { "questionId": "answer" } structure
-    // that we are sending from the controller.
+    }, // --- THE FIX --- // We are changing the type from 'Map' to a generic 'Object'. // This perfectly matches the { "questionId": "answer" } structure // that we are sending from the controller.
     answers: {
       type: Object,
       required: true,

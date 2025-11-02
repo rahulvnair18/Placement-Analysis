@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const {
+  removeHodQuestions,
   getStudentResultForHOD,
   getTestAnalysisForHOD,
   getHodQuestionStats,
@@ -52,7 +53,7 @@ router.get(
   hodProtect,
   getStudentResultForHOD
 );
-
+router.delete("/questions", hodProtect, removeHodQuestions);
 // --- THIS ROUTE WAS REMOVED BECAUSE IT DOES NOT BELONG HERE ---
 // router.get(
 //   "/scheduled-result/:resultId",

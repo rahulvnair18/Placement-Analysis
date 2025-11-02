@@ -148,7 +148,7 @@ const LoginPage = () => {
               <input
                 type="text"
                 className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring focus:border-blue-400"
-                placeholder="Enter your Reg ID"
+                placeholder="Enter your Reg ID "
                 value={regId}
                 onChange={(e) => setRegId(e.target.value)}
               />
